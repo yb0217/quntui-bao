@@ -22,10 +22,6 @@
         SELECT * FROM welcome_template WHERE enabled = true LIMIT 1
     </select>
 
-    <select id="findEnabled" resultMap="BaseResultMap">
-        SELECT * FROM welcome_template WHERE enabled = true LIMIT 1
-    </select>
-
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO welcome_template (name, content, enabled, created_at, updated_at)
         VALUES (#{name}, #{content}, #{enabled}, NOW(), NOW())
