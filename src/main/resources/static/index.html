@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>群推宝 - TG群营销助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
+        
+        /* 登录页 */
+        .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); width: 360px; }
+        .login-box h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .login-box button { width: 100%; padding: 12px; background: #0088ff; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+        .login-box button:hover { background: #0070dd; }
+        
+        /* 后台布局 */
+        .app-container { display: none; height: 100vh; }
+        .sidebar { width: 200px; background: #1a1a2e; color: white; padding: 20px 0; position: fixed; height: 100%; }
+        .sidebar h2 { padding: 0 20px 20px; font-size: 20px; border-bottom: 1px solid #333; }
+        .menu-item { padding: 14px 20px; cursor: pointer; transition: 0.2s; }
+        .menu-item:hover, .menu-item.active { background: #16213e; }
+        .menu-item span { margin-left: 8px; }
+        
+        .main { margin-left: 200px; padding: 24px; min-height: 100vh; }
+        
+        /* 页面标题 */
+        .page-title { font-size: 24px; font-weight: 600; color: #333; margin-bottom: 24px; }
+        
+        /* 卡片 */
+        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        
+        /* 表格 */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #333; }
+        tr:hover { background: #f8f9fa; }
+        
+        /* 按钮 */
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin-right: 8px; }
+        .btn-primary { background: #0088ff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        
+        /* 表单 */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: #333; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        
+        /* 模态框 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal.show { display: flex; justify-content: center; align-items: center; }
+        .modal-content { background: white; border-radius: 12px; padding: 24px; width: 500px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+        .modal-footer { margin-top: 20px; text-align: right; }
+        
+        /* 统计卡片 */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+        .stat-card { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .stat-card .label { color: #666; font-size: 14px; }
+        .stat-card .value { font-size: 32px; font-weight: 700; color: #333; margin-top: 8px; }
+        .stat-card.success .value { color: #28a745; }
+        .stat-card.danger .value { color: #dc3545; }
+        
+        /* 开关 */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; transition: 0.3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; transition: 0.3s; border-radius: 50%; }
+        input:checked + .slider { background: #0088ff; }
+        input:checked + .slider:before { transform: translateX(20px); }
+        
+        /* 工具栏 */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .search-input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; width: 240px; }
+        
+        /* 标签 */
+        .tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 4px; }
+        .tag-enabled { background: #d4edda; color: #155724; }
+        .tag-disabled { background: #f8d7da; color: #721c24; }
+        
+        /* JSON编辑器 */
+        .json-editor { font-family: monospace; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <!-- 登录页 -->
+    <div class="login-container" id="loginPage">
+        <div class="login-box">
+            <h1>🎲 群推宝</h1>
+            <input type="text" id="username" placeholder="用户名" value="admin">
+            <input type="password" id="password" placeholder="密码" value="admin123">
+            <button onclick="login()">登录</button>
+        </div>
+    </div>
+
+    <!-- 后台 -->
+    <div class="app-container" id="appPage">
+        <div class="sidebar">
+            <h2>🎲 群推宝</h2>
+            <div class="menu-item active" onclick="showPage('dashboard')"><span>📊</span>数据统计</div>
+            <div class="menu-item" onclick="showPage('groups')"><span>👥</span>群组管理</div>
+            <div class="menu-item" onclick="showPage('welcome')"><span>👋</span>欢迎消息</div>
+            <div class="menu-item" onclick="showPage('ads')"><span>📢</span>广告消息</div>
+            <div class="menu-item" onclick="logout()"><span>🚪</span>退出登录</div>
+        </div>
+        
+        <div class="main">
+            <!-- 数据统计 -->
+            <div id="page-dashboard">
+                <div class="page-title">数据统计</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="label">总发送</div>
+                        <div class="value" id="statTotal">-</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="label">发送成功</div>
+                        <div class="value" id="statSuccess">-</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="label">发送失败</div>
+                        <div class="value" id="statFail">-</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="toolbar">
+                        <h3>群组发送统计</h3>
+                    </div>
+                    <table id="groupStatsTable">
+                        <thead>
+                            <tr><th>群名称</th><th>群ID</th><th>成功</th><th>失败</th><th>总数</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 群组管理 -->
+            <div id="page-groups" style="display:none">
+                <div class="page-title">群组管理</div>
+                <div class="toolbar">
+                    <div style="display:flex;gap:10px;align-items:center">
+                        <input type="text" class="search-input" placeholder="搜索群ID或群名称..." id="groupSearch" onkeyup="searchGroups()">
+                        <button class="btn btn-primary" onclick="showGroupModal()">+ 添加群组</button>
+                        <button class="btn btn-success" onclick="downloadTemplate()">下载模板</button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">导入Excel</button>
+                        <input type="file" id="importFile" accept=".xlsx" style="display:none" onchange="importGroups(this)">
+                    </div>
+                </div>
+                <div class="card">
+                    <table id="groupTable">
+                        <thead>
+                            <tr>
+                                <th>群ID</th><th>群名称</th><th>邀请链接</th><th>欢迎</th><th>广告</th>
+                                <th>间隔(分)</th><th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 欢迎消息 -->
+            <div id="page-welcome" style="display:none">
+                <div class="page-title">欢迎消息模板</div>
+                <div class="toolbar">
+                    <input type="text" class="search-input" placeholder="搜索模板名称或内容..." id="welcomeSearch" onkeyup="searchWelcome()">
+                    <button class="btn btn-primary" onclick="showWelcomeModal()">+ 新建模板</button>
+                </div>
+                <div class="card">
+                    <table id="welcomeTable">
+                        <thead>
+                            <tr><th>模板名称</th><th>内容</th><th>状态</th><th>操作</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 广告消息 -->
+            <div id="page-ads" style="display:none">
+                <div class="page-title">广告消息</div>
+                <div class="toolbar">
+                    <input type="text" class="search-input" placeholder="搜索标题或内容..." id="adSearch" onkeyup="searchAds()">
+                    <button class="btn btn-primary" onclick="showAdModal()">+ 新建广告</button>
+                </div>
+                <div class="card">
+                    <table id="adTable">
+                        <thead>
+                            <tr><th>标题</th><th>内容</th><th>按钮布局</th><th>状态</th><th>操作</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 群组弹窗 -->
+    <div class="modal" id="groupModal">
+        <div class="modal-content">
+            <div class="modal-header" id="groupModalTitle">添加群组</div>
+            <form id="groupForm">
+                <input type="hidden" id="groupId">
+                <div class="form-group">
+                    <label>TG群ID</label>
+                    <input type="number" id="groupIdInput" required placeholder="例如: -1001234567890">
+                </div>
+                <div class="form-group">
+                    <label>群名称</label>
+                    <input type="text" id="groupName" placeholder="例如: 营销群1">
+                </div>
+                <div class="form-group">
+                    <label>邀请链接</label>
+                    <input type="text" id="inviteLink" placeholder="https://t.me/xxx">
+                </div>
+                <div class="form-group">
+                    <label>欢迎消息内容</label>
+                    <textarea id="welcomeMessage" placeholder="欢迎新成员的消息内容"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>启用欢迎 <input type="checkbox" id="welcomeEnabled" checked></label>
+                </div>
+                <div class="form-group">
+                    <label>广告间隔(分钟)</label>
+                    <input type="number" id="adInterval" value="60" min="1">
+                </div>
+                <div class="form-group">
+                    <label>启用广告 <input type="checkbox" id="adEnabled" checked></label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('groupModal')">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 欢迎模板弹窗 -->
+    <div class="modal" id="welcomeModal">
+        <div class="modal-content">
+            <div class="modal-header" id="welcomeModalTitle">新建欢迎模板</div>
+            <form id="welcomeForm">
+                <input type="hidden" id="welcomeId">
+                <div class="form-group">
+                    <label>模板名称</label>
+                    <input type="text" id="welcomeName" required placeholder="例如: 默认欢迎">
+                </div>
+                <div class="form-group">
+                    <label>欢迎消息内容</label>
+                    <textarea id="welcomeContent" required placeholder="欢迎 {nickname} 加入本群！🎉"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>启用 <input type="checkbox" id="welcomeEnabled2" checked></label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('welcomeModal')">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 广告消息弹窗 -->
+    <div class="modal" id="adModal">
+        <div class="modal-content">
+            <div class="modal-header" id="adModalTitle">新建广告消息</div>
+            <form id="adForm">
+                <input type="hidden" id="adId">
+                <div class="form-group">
+                    <label>标题</label>
+                    <input type="text" id="adTitle" required placeholder="例如: 🔔 新活动">
+                </div>
+                <div class="form-group">
+                    <label>消息内容</label>
+                    <textarea id="adContent" required placeholder="活动内容描述..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>按钮配置（可视化）</label>
+                    <div id="buttonBuilder" style="border: 1px solid #ddd; border-radius: 6px; padding: 12px; background: #fafafa;">
+                        <div id="buttonList"></div>
+                        <button type="button" class="btn btn-secondary" onclick="addButton()" style="margin-top: 10px;">+ 添加按钮</button>
+                    </div>
+                    <small style="color:#666">点击"添加按钮"来配置跳转链接</small>
+                </div>
+                <div class="form-group">
+                    <label>按钮布局</label>
+                    <select id="adLayout">
+                        <option value="1x2">一行两个（推荐）</option>
+                        <option value="1x1">一行一个</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>发送间隔(秒)</label>
+                    <input type="number" id="adDelay" value="5" min="3" max="60">
+                    <small style="color:#666">TG限制每分钟最多20条，建议5秒以上</small>
+                </div>
+                <div class="form-group">
+                    <label>每分钟限流</label>
+                    <input type="number" id="adMaxPerMinute" value="20" min="1" max="20">
+                </div>
+                <div class="form-group">
+                    <label>启用 <input type="checkbox" id="adEnabled2" checked></label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('adModal')">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8083/api';
+        let currentPage = 'dashboard';
+
+        // 登录
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const res = await fetch(API_BASE + '/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password}),
+                credentials: 'include'
+            });
+            const data = await res.json();
+            
+            if (data.code === 0) {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('appPage').style.display = 'flex';
+                loadDashboard();
+            } else {
+                alert(data.msg || '登录失败');
+            }
+        }
+
+        function logout() {
+            fetch(API_BASE + '/logout', {credentials: 'include'});
+            location.reload();
+        }
+
+        // 页面切换
+        function showPage(page) {
+            currentPage = page;
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.menu-item').classList.add('active');
+            
+            document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
+            document.getElementById('page-' + page).style.display = 'block';
+            
+            if (page === 'dashboard') loadDashboard();
+            else if (page === 'groups') loadGroups();
+            else if (page === 'welcome') loadWelcome();
+            else if (page === 'ads') loadAds();
+        }
+
+        // 加载统计
+        async function loadDashboard() {
+            const res = await fetch(API_BASE + '/statistics', {credentials: 'include'});
+            const data = await res.json();
+            if (data.data) {
+                document.getElementById('statTotal').textContent = data.data.total_count || 0;
+                document.getElementById('statSuccess').textContent = data.data.success_count || 0;
+                document.getElementById('statFail').textContent = data.data.fail_count || 0;
+            }
+        }
+
+        // 群组管理
+        async function loadGroups() {
+            const keyword = document.getElementById('groupSearch').value;
+            const url = keyword ? API_BASE + '/groups?keyword=' + encodeURIComponent(keyword) : API_BASE + '/groups';
+            const res = await fetch(url, {credentials: 'include'});
+            const data = await res.json();
+            const tbody = document.querySelector('#groupTable tbody');
+            tbody.innerHTML = data.data.map(g => `
+                <tr>
+                    <td>${g.groupId}</td>
+                    <td>${g.groupName || '-'}</td>
+                    <td>${g.inviteLink ? '<a href="'+g.inviteLink+'" target="_blank">链接</a>' : '-'}</td>
+                    <td>${g.welcomeEnabled ? '✅' : '❌'}</td>
+                    <td>${g.adEnabled ? '✅' : '❌'}</td>
+                    <td>${g.adIntervalMinutes}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editGroup(${g.id},${g.groupId},'${g.groupName||''}','${g.inviteLink||''}','${g.welcomeMessage||''}',${g.welcomeEnabled},${g.adEnabled},${g.adIntervalMinutes})">编辑</button>
+                        <button class="btn btn-danger" onclick="deleteGroup(${g.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function searchGroups() {
+            loadGroups();
+        }
+
+        // 下载导入模板
+        async function downloadTemplate() {
+            const res = await fetch(API_BASE + '/groups/template', {credentials: 'include'});
+            const text = await res.text();
+            const blob = new Blob([text], {type: 'text/csv;charset=utf-8'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '群组导入模板.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // 导入群组
+        async function importGroups(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const res = await fetch(API_BASE + '/groups/import', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            });
+            const data = await res.json();
+            
+            if (data.code === 0) {
+                alert(data.msg);
+                loadGroups();
+            } else {
+                alert(data.msg || '导入失败');
+            }
+            input.value = '';
+        }
+
+        function showGroupModal(id = null) {
+            document.getElementById('groupModalTitle').textContent = id ? '编辑群组' : '添加群组';
+            document.getElementById('groupForm').reset();
+            document.getElementById('groupId').value = '';
+            if (id) {
+                // 编辑模式，数据在行上
+            }
+            document.getElementById('groupModal').classList.add('show');
+        }
+
+        function editGroup(id, groupId, groupName, inviteLink, welcomeMsg, welcomeEn, adEn, adInterval) {
+            document.getElementById('groupModalTitle').textContent = '编辑群组';
+            document.getElementById('groupId').value = id;
+            document.getElementById('groupIdInput').value = groupId;
+            document.getElementById('groupName').value = groupName;
+            document.getElementById('inviteLink').value = inviteLink;
+            document.getElementById('welcomeMessage').value = welcomeMsg;
+            document.getElementById('welcomeEnabled').checked = welcomeEn;
+            document.getElementById('adEnabled').checked = adEn;
+            document.getElementById('adInterval').value = adInterval;
+            document.getElementById('groupModal').classList.add('show');
+        }
+
+        document.getElementById('groupForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('groupId').value;
+            const group = {
+                groupId: parseInt(document.getElementById('groupIdInput').value),
+                groupName: document.getElementById('groupName').value,
+                inviteLink: document.getElementById('inviteLink').value,
+                welcomeMessage: document.getElementById('welcomeMessage').value,
+                welcomeEnabled: document.getElementById('welcomeEnabled').checked,
+                adEnabled: document.getElementById('adEnabled').checked,
+                adIntervalMinutes: parseInt(document.getElementById('adInterval').value)
+            };
+            
+            const url = id ? API_BASE + '/groups/' + id : API_BASE + '/groups';
+            const method = id ? 'PUT' : 'POST';
+            
+            await fetch(url, {
+                method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(group),
+                credentials: 'include'
+            });
+            
+            closeModal('groupModal');
+            loadGroups();
+        };
+
+        async function deleteGroup(id) {
+            if (!confirm('确定删除?')) return;
+            await fetch(API_BASE + '/groups/' + id, {method: 'DELETE', credentials: 'include'});
+            loadGroups();
+        }
+
+        // 欢迎消息
+        async function loadWelcome() {
+            const keyword = document.getElementById('welcomeSearch').value;
+            const url = keyword ? API_BASE + '/welcome?keyword=' + encodeURIComponent(keyword) : API_BASE + '/welcome';
+            const res = await fetch(url, {credentials: 'include'});
+            const data = await res.json();
+            const tbody = document.querySelector('#welcomeTable tbody');
+            tbody.innerHTML = data.data.map(t => `
+                <tr>
+                    <td>${t.name}</td>
+                    <td>${t.content.substring(0, 50)}${t.content.length > 50 ? '...' : ''}</td>
+                    <td><span class="tag ${t.enabled ? 'tag-enabled' : 'tag-disabled'}">${t.enabled ? '启用' : '禁用'}</span></td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editWelcome(${t.id},'${t.name}','${t.content}',${t.enabled})">编辑</button>
+                        <button class="btn btn-danger" onclick="deleteWelcome(${t.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function searchWelcome() {
+            loadWelcome();
+        }
+
+        function showWelcomeModal() {
+            document.getElementById('welcomeModalTitle').textContent = '新建欢迎模板';
+            document.getElementById('welcomeForm').reset();
+            document.getElementById('welcomeId').value = '';
+            document.getElementById('welcomeModal').classList.add('show');
+        }
+
+        function editWelcome(id, name, content, enabled) {
+            document.getElementById('welcomeModalTitle').textContent = '编辑欢迎模板';
+            document.getElementById('welcomeId').value = id;
+            document.getElementById('welcomeName').value = name;
+            document.getElementById('welcomeContent').value = content;
+            document.getElementById('welcomeEnabled2').checked = enabled;
+            document.getElementById('welcomeModal').classList.add('show');
+        }
+
+        document.getElementById('welcomeForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('welcomeId').value;
+            const template = {
+                name: document.getElementById('welcomeName').value,
+                content: document.getElementById('welcomeContent').value,
+                enabled: document.getElementById('welcomeEnabled2').checked
+            };
+            
+            const url = id ? API_BASE + '/welcome/' + id : API_BASE + '/welcome';
+            const method = id ? 'PUT' : 'POST';
+            
+            await fetch(url, {
+                method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(template),
+                credentials: 'include'
+            });
+            
+            closeModal('welcomeModal');
+            loadWelcome();
+        };
+
+        async function deleteWelcome(id) {
+            if (!confirm('确定删除?')) return;
+            await fetch(API_BASE + '/welcome/' + id, {method: 'DELETE', credentials: 'include'});
+            loadWelcome();
+        }
+
+        // 广告消息
+        let buttonConfigList = []; // 可视化按钮配置
+
+        async function loadAds() {
+            const keyword = document.getElementById('adSearch').value;
+            const url = keyword ? API_BASE + '/ad-messages?keyword=' + encodeURIComponent(keyword) : API_BASE + '/ad-messages';
+            const res = await fetch(url, {credentials: 'include'});
+            const data = await res.json();
+            const tbody = document.querySelector('#adTable tbody');
+            tbody.innerHTML = data.data.map(m => `
+                <tr>
+                    <td>${m.title}</td>
+                    <td>${m.content.substring(0, 50)}${m.content.length > 50 ? '...' : ''}</td>
+                    <td>${m.buttonLayout}</td>
+                    <td><span class="tag ${m.enabled ? 'tag-enabled' : 'tag-disabled'}">${m.enabled ? '启用' : '禁用'}</span></td>
+                    <td>
+                        <button class="btn btn-primary" onclick="editAd(${m.id},'${m.title}','${m.content}','${(m.buttonConfig || m.buttons || '[]').replace(/'/g, "&#39;")}',${m.enabled},'${m.buttonLayout}',${m.delaySeconds || 5},${m.maxPerMinute || 20})">编辑</button>
+                        <button class="btn btn-danger" onclick="deleteAd(${m.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function searchAds() {
+            loadAds();
+        }
+
+        // 可视化按钮配置
+        function addButton() {
+            const btn = {text: '', icon: 'link', type: 'url', value: ''};
+            buttonConfigList.push(btn);
+            renderButtons();
+        }
+
+        function removeButton(index) {
+            buttonConfigList.splice(index, 1);
+            renderButtons();
+        }
+
+        function updateButton(index, field, value) {
+            buttonConfigList[index][field] = value;
+        }
+
+        function renderButtons() {
+            const container = document.getElementById('buttonList');
+            container.innerHTML = buttonConfigList.map((btn, idx) => `
+                <div style="background: white; padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #eee;">
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <input type="text" placeholder="按钮文字" value="${btn.text}" 
+                            onchange="updateButton(${idx}, 'text', this.value)"
+                            style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        <select onchange="updateButton(${idx}, 'type', this.value)" 
+                            style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="url" ${btn.type === 'url' ? 'selected' : ''}>网页链接</option>
+                            <option value="chat" ${btn.type === 'chat' ? 'selected' : ''}>跳转群/频道</option>
+                        </select>
+                        <button type="button" onclick="removeButton(${idx})" style="color: red; border: none; background: none; cursor: pointer;">✕</button>
+                    </div>
+                    <input type="text" placeholder="${btn.type === 'url' ? 'https://example.com' : 'https://t.me/群链接'}" 
+                        value="${btn.value}" onchange="updateButton(${idx}, 'value', this.value)"
+                        style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+            `).join('');
+        }
+
+        function showAdModal() {
+            document.getElementById('adModalTitle').textContent = '新建广告消息';
+            document.getElementById('adForm').reset();
+            buttonConfigList = [];
+            renderButtons();
+            document.getElementById('adId').value = '';
+            document.getElementById('adModal').classList.add('show');
+        }
+
+        function editAd(id, title, content, buttonConfig, enabled, layout, delay, maxPerMinute) {
+            document.getElementById('adModalTitle').textContent = '编辑广告消息';
+            document.getElementById('adId').value = id;
+            document.getElementById('adTitle').value = title;
+            document.getElementById('adContent').value = content;
+            document.getElementById('adEnabled2').checked = enabled;
+            document.getElementById('adLayout').value = layout || '1x2';
+            document.getElementById('adDelay').value = delay || 5;
+            document.getElementById('adMaxPerMinute').value = maxPerMinute || 20;
+            
+            // 加载可视化按钮配置
+            try {
+                buttonConfigList = JSON.parse(buttonConfig || '[]');
+            } catch(e) {
+                buttonConfigList = [];
+            }
+            renderButtons();
+            
+            document.getElementById('adModal').classList.add('show');
+        }
+
+        document.getElementById('adForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('adId').value;
+            
+            // 转换可视化按钮配置为JSON
+            const buttonConfig = JSON.stringify(buttonConfigList);
+            
+            const message = {
+                title: document.getElementById('adTitle').value,
+                content: document.getElementById('adContent').value,
+                buttonConfig: buttonConfig,  // 可视化配置
+                buttonLayout: document.getElementById('adLayout').value,
+                delaySeconds: parseInt(document.getElementById('adDelay').value) || 5,
+                maxPerMinute: parseInt(document.getElementById('adMaxPerMinute').value) || 20,
+                enabled: document.getElementById('adEnabled2').checked
+            };
+            
+            const url = id ? API_BASE + '/ad-messages/' + id : API_BASE + '/ad-messages';
+            const method = id ? 'PUT' : 'POST';
+            
+            await fetch(url, {
+                method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(message),
+                credentials: 'include'
+            });
+            
+            closeModal('adModal');
+            loadAds();
+        };
+
+        async function deleteAd(id) {
+            if (!confirm('确定删除?')) return;
+            await fetch(API_BASE + '/ad-messages/' + id, {method: 'DELETE', credentials: 'include'});
+            loadAds();
+        }
+
+        // 工具
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        // 点击弹窗外关闭
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.classList.remove('show');
+            };
+        });
+    </script>
+</body>
+</html>

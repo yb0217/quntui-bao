@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.quntui.repository.WelcomeTemplateMapper">
+    <resultMap id="BaseResultMap" type="com.quntui.model.WelcomeTemplate">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="content" property="content"/>
+        <result column="enabled" property="enabled"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM welcome_template ORDER BY id DESC
+    </select>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT * FROM welcome_template WHERE id = #{id}
+    </select>
+
+    <select id="findEnabled" resultMap="BaseResultMap">
+        SELECT * FROM welcome_template WHERE enabled = true LIMIT 1
+    </select>
+
+    <select id="findEnabled" resultMap="BaseResultMap">
+        SELECT * FROM welcome_template WHERE enabled = true LIMIT 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO welcome_template (name, content, enabled, created_at, updated_at)
+        VALUES (#{name}, #{content}, #{enabled}, NOW(), NOW())
+    </insert>
+
+    <update id="update">
+        UPDATE welcome_template SET 
+            name = #{name}, content = #{content}, enabled = #{enabled}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM welcome_template WHERE id = #{id}
+    </delete>
+
+    <!-- 搜索 -->
+    <select id="search" resultMap="BaseResultMap">
+        SELECT * FROM welcome_template 
+        WHERE name LIKE CONCAT('%', #{keyword}, '%')
+           OR content LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY id DESC
+    </select>
+</mapper>

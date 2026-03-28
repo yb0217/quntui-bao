@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.quntui.repository.AdMessageMapper">
+    <resultMap id="BaseResultMap" type="com.quntui.model.AdMessage">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="buttons" property="buttons"/>
+        <result column="button_layout" property="buttonLayout"/>
+        <result column="button_config" property="buttonConfig"/>
+        <result column="enabled" property="enabled"/>
+        <result column="delay_seconds" property="delaySeconds"/>
+        <result column="max_per_minute" property="maxPerMinute"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM ad_message ORDER BY id DESC
+    </select>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT * FROM ad_message WHERE id = #{id}
+    </select>
+
+    <select id="findEnabled" resultMap="BaseResultMap">
+        SELECT * FROM ad_message WHERE enabled = true
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ad_message (title, content, buttons, button_layout, button_config, enabled, delay_seconds, max_per_minute, created_at, updated_at)
+        VALUES (#{title}, #{content}, #{buttons}, #{buttonLayout}, #{buttonConfig}, #{enabled}, #{delaySeconds}, #{maxPerMinute}, NOW(), NOW())
+    </insert>
+
+    <update id="update">
+        UPDATE ad_message SET 
+            title = #{title}, content = #{content}, buttons = #{buttons},
+            button_layout = #{buttonLayout}, button_config = #{buttonConfig},
+            enabled = #{enabled}, delay_seconds = #{delaySeconds}, 
+            max_per_minute = #{maxPerMinute}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM ad_message WHERE id = #{id}
+    </delete>
+
+    <!-- 搜索 -->
+    <select id="search" resultMap="BaseResultMap">
+        SELECT * FROM ad_message 
+        WHERE title LIKE CONCAT('%', #{keyword}, '%')
+           OR content LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY id DESC
+    </select>
+</mapper>

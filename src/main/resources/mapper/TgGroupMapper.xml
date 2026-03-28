@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.quntui.repository.TgGroupMapper">
+    <resultMap id="BaseResultMap" type="com.quntui.model.TgGroup">
+        <id column="id" property="id"/>
+        <result column="group_id" property="groupId"/>
+        <result column="group_name" property="groupName"/>
+        <result column="invite_link" property="inviteLink"/>
+        <result column="welcome_enabled" property="welcomeEnabled"/>
+        <result column="welcome_message" property="welcomeMessage"/>
+        <result column="ad_enabled" property="adEnabled"/>
+        <result column="ad_interval_minutes" property="adIntervalMinutes"/>
+        <result column="last_ad_time" property="lastAdTime"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM tg_group ORDER BY id DESC
+    </select>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT * FROM tg_group WHERE id = #{id}
+    </select>
+
+    <select id="findByGroupId" resultMap="BaseResultMap">
+        SELECT * FROM tg_group WHERE group_id = #{groupId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tg_group (group_id, group_name, invite_link, welcome_enabled, welcome_message, ad_enabled, ad_interval_minutes, created_at, updated_at)
+        VALUES (#{groupId}, #{groupName}, #{inviteLink}, #{welcomeEnabled}, #{welcomeMessage}, #{adEnabled}, #{adIntervalMinutes}, NOW(), NOW())
+    </insert>
+
+    <update id="update">
+        UPDATE tg_group SET 
+            group_id = #{groupId}, group_name = #{groupName}, invite_link = #{inviteLink},
+            welcome_enabled = #{welcomeEnabled}, welcome_message = #{welcomeMessage},
+            ad_enabled = #{adEnabled}, ad_interval_minutes = #{adIntervalMinutes},
+            last_ad_time = #{lastAdTime}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM tg_group WHERE id = #{id}
+    </delete>
+
+    <!-- 搜索 -->
+    <select id="search" resultMap="BaseResultMap">
+        SELECT * FROM tg_group 
+        WHERE group_id LIKE CONCAT('%', #{keyword}, '%')
+           OR group_name LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY id DESC
+    </select>
+</mapper>

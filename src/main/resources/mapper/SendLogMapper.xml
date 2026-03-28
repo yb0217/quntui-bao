@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.quntui.repository.SendLogMapper">
+    <resultMap id="BaseResultMap" type="com.quntui.model.SendLog">
+        <id column="id" property="id"/>
+        <result column="group_id" property="groupId"/>
+        <result column="target_user_id" property="targetUserId"/>
+        <result column="message_type" property="messageType"/>
+        <result column="message_id" property="messageId"/>
+        <result column="content" property="content"/>
+        <result column="success" property="success"/>
+        <result column="error_msg" property="errorMsg"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO send_log (group_id, target_user_id, message_type, message_id, content, success, error_msg, created_at)
+        VALUES (#{groupId}, #{targetUserId}, #{messageType}, #{messageId}, #{content}, #{success}, #{errorMsg}, NOW())
+    </insert>
+
+    <select id="findByGroupId" resultMap="BaseResultMap">
+        SELECT * FROM send_log WHERE group_id = #{groupId} ORDER BY created_at DESC LIMIT 100
+    </select>
+
+    <select id="getStatistics" resultType="map">
+        SELECT 
+            SUM(CASE WHEN success = true THEN 1 ELSE 0 END) as success_count,
+            SUM(CASE WHEN success = false THEN 1 ELSE 0 END) as fail_count,
+            COUNT(*) as total_count
+        FROM send_log
+    </select>
+
+    <select id="getStatisticsByGroup" resultType="map">
+        SELECT 
+            group_id as groupId,
+            SUM(CASE WHEN success = true THEN 1 ELSE 0 END) as success_count,
+            SUM(CASE WHEN success = false THEN 1 ELSE 0 END) as fail_count,
+            COUNT(*) as total_count
+        FROM send_log
+        WHERE group_id = #{groupId}
+    </select>
+
+    <!-- 本分钟发送次数(用于TG限流检查) -->
+    <select id="getThisMinuteCountByGroup" resultType="map">
+        SELECT COUNT(*) as cnt FROM send_log 
+        WHERE group_id = #{groupId} 
+        AND message_type = 'ad'
+        AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)
+    </select>
+
+    <!-- 今日发送次数(统计用) -->
+    <select id="getTodayCountByGroup" resultType="map">
+        SELECT COUNT(*) as cnt FROM send_log 
+        WHERE group_id = #{groupId} 
+        AND message_type = 'ad'
+        AND DATE(created_at) = CURDATE()
+    </select>
+</mapper>
