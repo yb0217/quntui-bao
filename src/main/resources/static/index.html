@@ -102,44 +102,13 @@
     <div class="app-container" id="appPage">
         <div class="sidebar">
             <h2>🎲 群推宝</h2>
-            <div class="menu-item active" onclick="showPage('dashboard')"><span>📊</span>数据统计</div>
-            <div class="menu-item" onclick="showPage('groups')"><span>👥</span>群组管理</div>
+            <div class="menu-item active" onclick="showPage('groups')"><span>👥</span>群组管理</div>
             <div class="menu-item" onclick="showPage('welcome')"><span>👋</span>欢迎消息</div>
             <div class="menu-item" onclick="showPage('ads')"><span>📢</span>广告消息</div>
             <div class="menu-item" onclick="logout()"><span>🚪</span>退出登录</div>
         </div>
         
         <div class="main">
-            <!-- 数据统计 -->
-            <div id="page-dashboard">
-                <div class="page-title">数据统计</div>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="label">总发送</div>
-                        <div class="value" id="statTotal">-</div>
-                    </div>
-                    <div class="stat-card success">
-                        <div class="label">发送成功</div>
-                        <div class="value" id="statSuccess">-</div>
-                    </div>
-                    <div class="stat-card danger">
-                        <div class="label">发送失败</div>
-                        <div class="value" id="statFail">-</div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="toolbar">
-                        <h3>群组发送统计</h3>
-                    </div>
-                    <table id="groupStatsTable">
-                        <thead>
-                            <tr><th>群名称</th><th>群ID</th><th>成功</th><th>失败</th><th>总数</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-
             <!-- 群组管理 -->
             <div id="page-groups" style="display:none">
                 <div class="page-title">群组管理</div>
@@ -386,39 +355,9 @@
             document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
             document.getElementById('page-' + page).style.display = 'block';
             
-            if (page === 'dashboard') loadDashboard();
-            else if (page === 'groups') loadGroups();
+            if (page === 'groups') loadGroups();
             else if (page === 'welcome') loadWelcome();
             else if (page === 'ads') { loadSystemConfig(); loadAds(); }
-        }
-
-        // 加载统计
-        async function loadDashboard() {
-            const res = await fetch(API_BASE + '/statistics', {credentials: 'include'});
-            const data = await res.json();
-            if (data.data) {
-                document.getElementById('statTotal').textContent = data.data.total_count || 0;
-                document.getElementById('statSuccess').textContent = data.data.success_count || 0;
-                document.getElementById('statFail').textContent = data.data.fail_count || 0;
-            }
-            
-            // 加载群组统计
-            const groupRes = await fetch(API_BASE + '/statistics/by-group', {credentials: 'include'});
-            const groupData = await groupRes.json();
-            const tbody = document.querySelector('#groupStatsTable tbody');
-            if (groupData.data && groupData.data.length > 0) {
-                tbody.innerHTML = groupData.data.map(g => `
-                    <tr>
-                        <td>${g.groupName || '-'}</td>
-                        <td>${g.groupId}</td>
-                        <td style="color:green">${g.success_count || 0}</td>
-                        <td style="color:red">${g.fail_count || 0}</td>
-                        <td>${g.total_count || 0}</td>
-                    </tr>
-                `).join('');
-            } else {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999">暂无数据</td></tr>';
-            }
         }
 
         // 群组管理
