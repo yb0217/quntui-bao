@@ -69,19 +69,32 @@ INSERT INTO admin_user (username, password, role)
 VALUES ('admin', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin')
 ON DUPLICATE KEY UPDATE username=username;
 
--- 初始化默认欢迎模板
-INSERT INTO welcome_template (name, content) 
-VALUES ('默认欢迎', '欢迎新朋友！请先阅读群规，有问题随时@管理员~')
-ON DUPLICATE KEY UPDATE content=content;
 
--- 初始化示例广告消息
-INSERT INTO ad_message (title, content, button_layout, button_config, delay_seconds, max_per_minute) 
-VALUES (
-    '活动通知',
-    '我们推出新功能啦！点击下方按钮了解详情~',
-    '1x2',
-    '[{"text":"加入社群","icon":"megaphone","type":"chat","value":"https://t.me/xxx"},{"text":"咨询客服","icon":"chat","type":"chat","value":"https://t.me/xxx"},{"text":"访问官网","icon":"globe","type":"url","value":"https://xxx.com"}]',
-    5,
-    20
-)
-ON DUPLICATE KEY UPDATE content=content;
+
+-- 全局欢迎消息表（只保留一条）
+CREATE TABLE IF NOT EXISTS welcome_message (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    content TEXT NOT NULL COMMENT '欢迎消息内容（支持多行）',
+    enabled BOOLEAN DEFAULT TRUE COMMENT '是否启用',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+
+-- 系统配置表
+CREATE TABLE IF NOT EXISTS system_config (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    config_key VARCHAR(50) NOT NULL UNIQUE COMMENT '配置键',
+    config_value TEXT COMMENT '配置值',
+    description VARCHAR(255) COMMENT '说明',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 初始化默认配置
+INSERT INTO system_config (config_key, config_value, description) VALUES
+('ad_cycle_minutes', '60', '广告发送周期(分钟)'),
+('ad_delay_seconds', '2', '发送间隔秒数'),
+('ad_max_per_minute', '20', '每分钟限流')
+ON DUPLICATE KEY UPDATE config_value=config_value;

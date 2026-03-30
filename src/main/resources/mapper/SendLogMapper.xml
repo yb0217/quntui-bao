@@ -40,6 +40,20 @@
         WHERE group_id = #{groupId}
     </select>
 
+    <!-- 获取所有群组的统计 -->
+    <select id="getAllGroupStatistics" resultType="map">
+        SELECT 
+            sl.group_id as groupId,
+            tg.group_name as groupName,
+            SUM(CASE WHEN sl.success = true THEN 1 ELSE 0 END) as success_count,
+            SUM(CASE WHEN sl.success = false THEN 1 ELSE 0 END) as fail_count,
+            COUNT(*) as total_count
+        FROM send_log sl
+        LEFT JOIN tg_group tg ON sl.group_id = tg.group_id
+        GROUP BY sl.group_id, tg.group_name
+        ORDER BY total_count DESC
+    </select>
+
     <!-- 本分钟发送次数(用于TG限流检查) -->
     <select id="getThisMinuteCountByGroup" resultType="map">
         SELECT COUNT(*) as cnt FROM send_log 

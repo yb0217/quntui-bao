@@ -30,4 +30,8 @@ public class SendLogService {
         List<Map<String, Object>> list = mapper.getStatisticsByGroup(groupId);
         return list.isEmpty() ? null : list.get(0);
     }
+    
+    public List<Map<String, Object>> getAllGroupStatistics() {
+        return mapper.getAllGroupStatistics();
+    }
 }

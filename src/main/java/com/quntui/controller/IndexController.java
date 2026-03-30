@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpSession;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -51,6 +52,15 @@ public class IndexController {
     @GetMapping("/statistics")
     public Map<String, Object> statistics() {
         Map<String, Object> stats = sendLogService.getStatistics();
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("data", stats);
+        return result;
+    }
+    
+    @GetMapping("/statistics/by-group")
+    public Map<String, Object> statisticsByGroup() {
+        List<Map<String, Object>> stats = sendLogService.getAllGroupStatistics();
         Map<String, Object> result = new HashMap<>();
         result.put("code", 0);
         result.put("data", stats);

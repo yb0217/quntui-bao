@@ -36,9 +36,18 @@ class QuntuiAPIClient:
         """获取 Telethon 客户端"""
         return TelegramClient(
             'quntui_bot',
-            Config.API_ID,
+            int(Config.API_ID),
             Config.API_HASH,
-            bot_token=Config.BOT_TOKEN
+            proxy=Config.PROXY
+        )
+    
+    def get_telegram_client_with_session(self, session_path):
+        """获取 Telethon 客户端（指定session路径）"""
+        return TelegramClient(
+            session_path,
+            int(Config.API_ID),
+            Config.API_HASH,
+            proxy=Config.PROXY
         )
     
     def initialize_cache(self):
@@ -187,8 +196,22 @@ class QuntuiAPIClient:
     
     # ========== 欢迎消息 ==========
     
+    def get_active_welcome_message(self):
+        """获取当前启用的欢迎消息（全局单条）"""
+        if not self._initialized:
+            self.initialize_cache()
+        
+        try:
+            resp = self.session.get(f"{self.base_url}/api/welcome-message/active")
+            if resp.status_code == 200:
+                data = resp.json()
+                return data.get('data')
+        except Exception as e:
+            print(f"获取欢迎消息失败: {e}")
+        return None
+    
     def get_welcome_templates(self, keyword=None):
-        """获取欢迎消息模板"""
+        """获取欢迎消息模板（兼容旧接口）"""
         if not self._initialized:
             self.initialize_cache()
         
@@ -364,6 +387,30 @@ class QuntuiAPIClient:
             self.session.post(url, json=data)
         except Exception as e:
             print(f"记录日志失败: {e}")
+    
+    # ========== 系统配置 ==========
+    
+    def get_system_config(self, key):
+        """获取系统配置值"""
+        try:
+            resp = self.session.get(f"{self.base_url}/api/system-config/{key}")
+            data = resp.json()
+            return data.get('data')
+        except Exception as e:
+            print(f"获取系统配置失败: {e}")
+            return None
+    
+    def get_ad_cycle_minutes(self):
+        """获取广告发送周期（分钟）"""
+        return int(self.get_system_config('ad_cycle_minutes') or 60)
+    
+    def get_ad_delay_seconds(self):
+        """获取发送间隔（秒）"""
+        return int(self.get_system_config('ad_delay_seconds') or 5)
+    
+    def get_ad_max_per_minute(self):
+        """获取每分钟限流"""
+        return int(self.get_system_config('ad_max_per_minute') or 20)
 
 
 # 测试用

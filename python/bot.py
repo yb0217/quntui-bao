@@ -27,7 +27,8 @@ class QuntuiBot:
         """启动机器人"""
         print("🎲 群推宝机器人启动中...")
         
-        self.client = self.api.get_telegram_client()
+        # 使用内存 session 避免文件锁定问题
+        self.client = self.api.get_telegram_client_with_session(':memory:')
         await self.client.start(bot_token=self.config.BOT_TOKEN)
         
         print(f"✅ 机器人已启动: @{self.config.BOT_USERNAME}")
@@ -43,11 +44,6 @@ class QuntuiBot:
     
     def register_handlers(self):
         """注册事件处理器"""
-        
-        @self.client.on(events.NewParticipant(event=events.ChatAction))
-        async def on_new_member(event):
-            """新成员加入群"""
-            await self.handle_new_member(event)
         
         @self.client.on(events.ChatAction)
         async def on_chat_action(event):
@@ -75,18 +71,19 @@ class QuntuiBot:
             if not group_config.get('welcomeEnabled', True):
                 return
             
-            # 获取欢迎消息模板
+            # 获取欢迎消息（从新的全局欢迎消息 API）
             welcome_msg = group_config.get('welcomeMessage')
             if not welcome_msg:
-                # 如果没有配置，从 API 获取默认模板
-                templates = self.api.get_welcome_templates()
-                if templates:
-                    welcome_msg = templates[0].get('content', '欢迎新朋友！🎉')
+                welcome_data = self.api.get_active_welcome_message()
+                if welcome_data:
+                    welcome_msg = welcome_data.get('content')
+                if not welcome_msg:
+                    welcome_msg = '欢迎新朋友！🎉\n请先阅读群规，有问题随时@管理员~'
             
             if welcome_msg:
                 # 发送欢迎消息
                 await self.client.send_message(chat_id, welcome_msg)
-                print(f"✅ 欢迎消息已发送到群 {chat_id}")
+                print(f"👋 欢迎消息已发送到群 {chat_id}")
                 
                 # 记录发送日志
                 self.api.record_send_log(
@@ -101,67 +98,124 @@ class QuntuiBot:
             print(f"❌ 处理新成员加入失败: {e}")
     
     async def ad_scheduler(self):
-        """广告定时发送任务"""
+        """广告定时发送任务 - 全局限流，一轮发完所有群"""
+        import random
+        
         await asyncio.sleep(5)  # 启动等待
+        
+        # 发送索引，记录上次发送到哪个群
+        send_index = 0
         
         while True:
             try:
-                # 获取所有启用了广告的群组
-                groups = self.api.get_groups()
+                # 获取广告配置（用于限流）
+                ad_messages = self.api.get_ad_messages()
+                if not ad_messages:
+                    print("⏳ 无广告消息，60秒后重试")
+                    await asyncio.sleep(60)
+                    continue
                 
-                for group in groups:
-                    if not group.get('adEnabled', False):
-                        continue
-                    
+                # 取第一条广告（现在只允许一条）
+                ad = ad_messages[0]
+                
+                # 从系统配置获取限流参数
+                max_per_minute = self.api.get_ad_max_per_minute()  # 每分钟限流
+                delay_base = self.api.get_ad_delay_seconds()       # 间隔基数
+                
+                # 获取广告发送周期
+                ad_cycle_minutes = self.api.get_ad_cycle_minutes()
+                
+                # 获取所有启用了广告的群
+                all_groups = self.api.get_groups()
+                enabled_groups = [g for g in all_groups if g.get('adEnabled', False)]
+                
+                if not enabled_groups:
+                    print("⏳ 无启用广告的群，60秒后重试")
+                    await asyncio.sleep(60)
+                    continue
+                
+                groups_count = len(enabled_groups)
+                print(f"📋 开始广告轮播，共 {groups_count} 个群，每分钟限流 {max_per_minute} 条，周期 {ad_cycle_minutes} 分钟")
+                
+                # 记录本轮开始时间，用于每分钟限流计数
+                minute_start_time = asyncio.get_event_loop().time()
+                sent_this_minute = 0
+                
+                # 一轮循环：发完所有群（受限于每分钟限流）
+                while send_index < groups_count:
+                    group = enabled_groups[send_index]
                     group_id = group.get('groupId')
+                    ad_interval = group.get('adIntervalMinutes', 60)  # 群独立间隔
+                    
+                    # 检查距离上次发送是否达到该群的间隔要求
                     last_ad_time = group.get('lastAdTime')
-                    ad_interval = group.get('adIntervalMinutes', 60)
+                    if last_ad_time:
+                        from datetime import datetime
+                        try:
+                            # 解析时间
+                            last_str = last_ad_time.replace('Z', '+00:00')
+                            last_time = datetime.fromisoformat(last_str.replace(tzinfo=None))
+                            local_now = datetime.now()
+                            minutes_since_last = (local_now - last_time).total_seconds() / 60
+                            
+                            if minutes_since_last < ad_interval:
+                                # 未达到该群的间隔，跳到下一个群
+                                print(f"⏭ 群 {group_id} 距离上次发送还差 {ad_interval - minutes_since_last:.1f} 分钟，跳过")
+                                send_index += 1
+                                continue
+                        except Exception as e:
+                            print(f"⚠️ 解析时间失败: {e}")
                     
-                    # 检查是否需要发送广告
-                    should_send = self.api.check_can_send(group_id)
-                    if not should_send.get('canSend'):
+                    # 检查每分钟限流
+                    current_time = asyncio.get_event_loop().time()
+                    if current_time - minute_start_time >= 60:
+                        # 新的一分钟，重置计数
+                        minute_start_time = current_time
+                        sent_this_minute = 0
+                        print("🔄 新一分钟开始")
+                    
+                    if sent_this_minute >= max_per_minute:
+                        # 本分钟已达上限，等待
+                        wait_seconds = 60 - (current_time - minute_start_time)
+                        print(f"⏳ 本分钟已达上限({max_per_minute})，等待 {wait_seconds:.0f} 秒")
+                        await asyncio.sleep(wait_seconds)
+                        minute_start_time = asyncio.get_event_loop().time()
+                        sent_this_minute = 0
                         continue
                     
-                    # 获取广告消息
-                    ad_messages = self.api.get_ad_messages()
-                    if not ad_messages:
-                        continue
-                    
-                    # 随机选择一条广告消息
-                    import random
-                    ad = random.choice(ad_messages)
-                    
-                    # 构建按钮（如果有）
+                    # 构建按钮
                     buttons = self.build_buttons(ad)
                     
-                    # 发送广告消息
+                    # 发送广告
                     try:
-                        msg = await self.client.send_message(
-                            group_id,
-                            ad.get('content', ''),
-                            buttons=buttons
-                        )
+                        title = ad.get('title', '')
+                        content = ad.get('content', '')
+                        message = f"*{title}*\n\n{content}" if title else content
                         
-                        # 记录发送日志
+                        # 确保 buttons 为 None 而不是空列表
+                        await self.client.send_message(group_id, message, buttons=buttons if buttons else None)
+                        
+                        # 记录日志
                         self.api.record_send_log(
                             group_id=group_id,
                             target_user_id=None,
                             message_type='ad',
                             ad_message_id=ad.get('id'),
-                            content=ad.get('content', ''),
+                            content=content,
                             success=True
                         )
                         
-                        # 更新群组最后发送时间
+                        # 更新群的最后发送时间
                         self.api.update_group_last_ad_time(group_id)
                         
-                        print(f"✅ 广告已发送到群 {group_id}")
+                        print(f"✅ [{sent_this_minute + 1}/{max_per_minute}] 广告已发送到群 {group_id}")
+                        sent_this_minute += 1
                         
                     except FloodWaitError as e:
-                        print(f"⏳ 限流等待 {e.seconds} 秒")
+                        print(f"⏳ TG限流，等待 {e.seconds} 秒")
                         await asyncio.sleep(e.seconds)
                     except Exception as e:
-                        print(f"❌ 发送广告失败: {e}")
+                        print(f"❌ 发送广告到群 {group_id} 失败: {e}")
                         self.api.record_send_log(
                             group_id=group_id,
                             target_user_id=None,
@@ -171,15 +225,26 @@ class QuntuiBot:
                             success=False,
                             error_msg=str(e)
                         )
+                    
+                    # 随机间隔 2-(delay_base+2) 秒
+                    interval = random.randint(2, delay_base + 2)
+                    await asyncio.sleep(interval)
+                    
+                    # 移动到下一个群
+                    send_index += 1
+                
+                # 一轮发完了，重置索引，等待配置的周期时间再发下一轮
+                send_index = 0
+                
+                print(f"📊 本轮发送完成({groups_count}个群)，等待 {ad_cycle_minutes} 分钟后开始下一轮...")
+                await asyncio.sleep(ad_cycle_minutes * 60)
                 
             except Exception as e:
                 print(f"❌ 广告任务异常: {e}")
-            
-            # 每分钟检查一次
-            await asyncio.sleep(60)
+                await asyncio.sleep(60)
     
     def build_buttons(self, ad_message):
-        """构建 Inline 按钮"""
+        """构建 Inline 按钮 - 支持多行格式"""
         try:
             button_config = ad_message.get('buttonConfig')
             if not button_config:
@@ -194,30 +259,54 @@ class QuntuiBot:
             if not buttons_data:
                 return None
             
-            layout = ad_message.get('buttonLayout', '1x2')
-            buttons = []
+            # 调试信息
             
-            for btn in buttons_data:
-                text = btn.get('text', '')
-                url = btn.get('value', '')
-                
-                if text and url:
-                    buttons.append(Button.url(text, url))
+            # 新格式：[{buttons: [{text, type, value}, ...]}, ...]
+            # 兼容旧格式：[{text, type, value}, ...]
+            result = []
             
-            # 根据布局组合按钮
-            if layout == '1x1':
-                # 一行一个按钮
-                return [buttons]
-            else:
-                # 一行两个按钮
-                result = []
-                for i in range(0, len(buttons), 2):
-                    row = buttons[i:i+2]
-                    result.append(row)
-                return result if result else None
+            for row in buttons_data:
+                # 判断是否是新格式
+                if 'buttons' in row:
+                    # 新格式：多行按钮
+                    btn_list = row['buttons']
+                    row_buttons = []
+                    for btn in btn_list:
+                        text = btn.get('text', '')
+                        url = btn.get('value', '')
+                        if text and url:
+                            row_buttons.append(Button.url(text, url))
+                    if row_buttons:
+                        result.append(row_buttons)
+                else:
+                    # 旧格式：扁平结构，按layout分组
+                    text = row.get('text', '')
+                    url = row.get('value', '')
+                    if text and url:
+                        result.append([Button.url(text, url)])
+            
+            # 展平旧格式
+            if result and isinstance(result[0], list) and len(result) > 0:
+                first_elem = result[0][0] if result[0] else None
+                if first_elem and not hasattr(first_elem, 'text'):
+                    # 是扁平结构，需要重组
+                    flat = [btn[0] for btn in result]
+                    result = []
+                    layout = ad_message.get('buttonLayout', '1x2')
+                    if layout == '1x1':
+                        for btn in flat:
+                            result.append([btn])
+                    else:
+                        for i in range(0, len(flat), 2):
+                            row = flat[i:i+2]
+                            result.append(row)
+            
+            return result if result else None
                 
         except Exception as e:
             print(f"❌ 构建按钮失败: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
 

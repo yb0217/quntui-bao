@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.quntui.repository.SystemConfigMapper">
+    <resultMap id="BaseResultMap" type="com.quntui.model.SystemConfig">
+        <id column="id" property="id"/>
+        <result column="config_key" property="configKey"/>
+        <result column="config_value" property="configValue"/>
+        <result column="description" property="description"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM system_config ORDER BY id
+    </select>
+
+    <select id="getValueByKey" resultType="string">
+        SELECT config_value FROM system_config WHERE config_key = #{configKey}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO system_config (config_key, config_value, description)
+        VALUES (#{configKey}, #{configValue}, #{description})
+        ON DUPLICATE KEY UPDATE config_value=#{configValue}
+    </insert>
+</mapper>

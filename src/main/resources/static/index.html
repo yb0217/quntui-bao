@@ -145,7 +145,8 @@
                 <div class="page-title">群组管理</div>
                 <div class="toolbar">
                     <div style="display:flex;gap:10px;align-items:center">
-                        <input type="text" class="search-input" placeholder="搜索群ID或群名称..." id="groupSearch" onkeyup="searchGroups()">
+                        <input type="text" class="search-input" placeholder="搜索群ID或群名称..." id="groupSearch">
+                        <button class="btn btn-primary" onclick="searchGroups()">搜索</button>
                         <button class="btn btn-primary" onclick="showGroupModal()">+ 添加群组</button>
                         <button class="btn btn-success" onclick="downloadTemplate()">下载模板</button>
                         <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">导入Excel</button>
@@ -157,7 +158,7 @@
                         <thead>
                             <tr>
                                 <th>群ID</th><th>群名称</th><th>邀请链接</th><th>欢迎</th><th>广告</th>
-                                <th>间隔(分)</th><th>操作</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -167,35 +168,76 @@
 
             <!-- 欢迎消息 -->
             <div id="page-welcome" style="display:none">
-                <div class="page-title">欢迎消息模板</div>
-                <div class="toolbar">
-                    <input type="text" class="search-input" placeholder="搜索模板名称或内容..." id="welcomeSearch" onkeyup="searchWelcome()">
-                    <button class="btn btn-primary" onclick="showWelcomeModal()">+ 新建模板</button>
-                </div>
-                <div class="card">
-                    <table id="welcomeTable">
-                        <thead>
-                            <tr><th>模板名称</th><th>内容</th><th>状态</th><th>操作</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                <div class="page-title">欢迎消息</div>
+                <div class="card" style="margin-bottom: 16px;">
+                    <p style="color: #666; margin-bottom: 16px;">新成员入群时，机器人会自动发送欢迎消息到此群。</p>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: bold;">欢迎消息内容（支持多行）</label>
+                        <textarea id="welcomeContent" rows="6" class="input" placeholder="欢迎新朋友！🎉&#10;请先阅读群规，有问题随时@管理员~" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: vertical; font-size: 14px;"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="welcomeEnabled" checked>
+                            <span>启用欢迎消息</span>
+                        </label>
+                        <button class="btn btn-primary" onclick="saveWelcomeMessage()">保存</button>
+                    </div>
                 </div>
             </div>
 
             <!-- 广告消息 -->
             <div id="page-ads" style="display:none">
                 <div class="page-title">广告消息</div>
-                <div class="toolbar">
-                    <input type="text" class="search-input" placeholder="搜索标题或内容..." id="adSearch" onkeyup="searchAds()">
-                    <button class="btn btn-primary" onclick="showAdModal()">+ 新建广告</button>
+                
+                <!-- 全局广告设置 -->
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 14px; opacity: 0.9;">📊 全局广告设置</div>
+                            <div style="font-size: 24px; font-weight: bold; margin-top: 4px;">
+                                广告发送周期: <input type="number" id="adCycleMinutes" style="width:60px;padding:4px;border-radius:4px;border:none;font-size:20px;text-align:center;" value="60" min="1"> 分钟
+                                <button onclick="saveAdCycle()" style="margin-left:8px;padding:4px 12px;font-size:14px;cursor:pointer;">保存</button>
+                            </div>
+                            <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
+                                💡 当前群: <span id="totalGroupCount">-</span> 个 | 理论耗时: <span id="estimatedMinutes">-</span> 分钟/轮
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card">
-                    <table id="adTable">
-                        <thead>
-                            <tr><th>标题</th><th>内容</th><th>按钮布局</th><th>状态</th><th>操作</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                
+                <div class="toolbar">
+                    <button class="btn btn-primary" id="btnNewAd" onclick="showAdModal()">+ 新建广告</button>
+                </div>
+                
+                <!-- 无广告状态 -->
+                <div id="adEmptyState" class="card" style="text-align: center; padding: 40px; display: none;">
+                    <p style="color: #999; margin-bottom: 16px;">暂无广告消息</p>
+                </div>
+                
+                <!-- 广告卡片 + 按钮管理 -->
+                <div id="adCardArea" style="display: none;">
+                    <div class="card" style="margin-top: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div>
+                                <h3 id="previewTitle" style="margin: 0 0 8px 0; font-size: 18px;"></h3>
+                                <p id="previewContent" style="margin: 0; color: #666; white-space: pre-wrap;"></p>
+                            </div>
+                            <div>
+                                <span id="previewStatus" class="tag"></span>
+                                <button class="btn btn-primary" onclick="editAdInfo()" style="margin-left: 8px;">✏️ 编辑</button>
+                                <button class="btn btn-danger" onclick="deleteAdInfo()" style="margin-left: 4px;">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 按钮行管理区域 -->
+                    <div class="card" style="margin-top: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h4 style="margin: 0;">按钮配置</h4>
+                            <button class="btn btn-primary" onclick="showAddButtonRow()">+ 添加按钮行</button>
+                        </div>
+                        <div id="buttonRowsPreview" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -225,10 +267,6 @@
                 </div>
                 <div class="form-group">
                     <label>启用欢迎 <input type="checkbox" id="welcomeEnabled" checked></label>
-                </div>
-                <div class="form-group">
-                    <label>广告间隔(分钟)</label>
-                    <input type="number" id="adInterval" value="60" min="1">
                 </div>
                 <div class="form-group">
                     <label>启用广告 <input type="checkbox" id="adEnabled" checked></label>
@@ -266,9 +304,9 @@
         </div>
     </div>
 
-    <!-- 广告消息弹窗 -->
+    <!-- 广告消息弹窗 - 基本信息 -->
     <div class="modal" id="adModal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header" id="adModalTitle">新建广告消息</div>
             <form id="adForm">
                 <input type="hidden" id="adId">
@@ -278,31 +316,7 @@
                 </div>
                 <div class="form-group">
                     <label>消息内容</label>
-                    <textarea id="adContent" required placeholder="活动内容描述..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>按钮配置（可视化）</label>
-                    <div id="buttonBuilder" style="border: 1px solid #ddd; border-radius: 6px; padding: 12px; background: #fafafa;">
-                        <div id="buttonList"></div>
-                        <button type="button" class="btn btn-secondary" onclick="addButton()" style="margin-top: 10px;">+ 添加按钮</button>
-                    </div>
-                    <small style="color:#666">点击"添加按钮"来配置跳转链接</small>
-                </div>
-                <div class="form-group">
-                    <label>按钮布局</label>
-                    <select id="adLayout">
-                        <option value="1x2">一行两个（推荐）</option>
-                        <option value="1x1">一行一个</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>发送间隔(秒)</label>
-                    <input type="number" id="adDelay" value="5" min="3" max="60">
-                    <small style="color:#666">TG限制每分钟最多20条，建议5秒以上</small>
-                </div>
-                <div class="form-group">
-                    <label>每分钟限流</label>
-                    <input type="number" id="adMaxPerMinute" value="20" min="1" max="20">
+                    <textarea id="adContent" required placeholder="活动内容描述..." rows="4"></textarea>
                 </div>
                 <div class="form-group">
                     <label>启用 <input type="checkbox" id="adEnabled2" checked></label>
@@ -312,6 +326,26 @@
                     <button type="submit" class="btn btn-primary">保存</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 按钮行配置弹窗 -->
+    <div class="modal" id="buttonRowModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header" id="buttonRowModalTitle">添加按钮行</div>
+            <div style="padding: 16px;">
+                <div style="background: #f5f5f5; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: bold;">按钮行 <span id="buttonRowIndex"></span></span>
+                        <button type="button" onclick="addButtonInRow()" class="btn btn-secondary" style="padding: 4px 12px;">+ 添加按钮</button>
+                    </div>
+                    <div id="buttonInRowList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('buttonRowModal')">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveButtonRow()">保存此行</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -358,7 +392,7 @@
             if (page === 'dashboard') loadDashboard();
             else if (page === 'groups') loadGroups();
             else if (page === 'welcome') loadWelcome();
-            else if (page === 'ads') loadAds();
+            else if (page === 'ads') { loadSystemConfig(); loadAds(); }
         }
 
         // 加载统计
@@ -369,6 +403,24 @@
                 document.getElementById('statTotal').textContent = data.data.total_count || 0;
                 document.getElementById('statSuccess').textContent = data.data.success_count || 0;
                 document.getElementById('statFail').textContent = data.data.fail_count || 0;
+            }
+            
+            // 加载群组统计
+            const groupRes = await fetch(API_BASE + '/statistics/by-group', {credentials: 'include'});
+            const groupData = await groupRes.json();
+            const tbody = document.querySelector('#groupStatsTable tbody');
+            if (groupData.data && groupData.data.length > 0) {
+                tbody.innerHTML = groupData.data.map(g => `
+                    <tr>
+                        <td>${g.groupName || '-'}</td>
+                        <td>${g.groupId}</td>
+                        <td style="color:green">${g.success_count || 0}</td>
+                        <td style="color:red">${g.fail_count || 0}</td>
+                        <td>${g.total_count || 0}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999">暂无数据</td></tr>';
             }
         }
 
@@ -386,9 +438,8 @@
                     <td>${g.inviteLink ? '<a href="'+g.inviteLink+'" target="_blank">链接</a>' : '-'}</td>
                     <td>${g.welcomeEnabled ? '✅' : '❌'}</td>
                     <td>${g.adEnabled ? '✅' : '❌'}</td>
-                    <td>${g.adIntervalMinutes}</td>
                     <td>
-                        <button class="btn btn-primary" onclick="editGroup(${g.id},${g.groupId},'${g.groupName||''}','${g.inviteLink||''}','${g.welcomeMessage||''}',${g.welcomeEnabled},${g.adEnabled},${g.adIntervalMinutes})">编辑</button>
+                        <button class="btn btn-primary" onclick="editGroup(${g.id},${g.groupId},'${g.groupName||''}','${g.inviteLink||''}','${g.welcomeMessage||''}',${g.welcomeEnabled},${g.adEnabled})">编辑</button>
                         <button class="btn btn-danger" onclick="deleteGroup(${g.id})">删除</button>
                     </td>
                 </tr>
@@ -446,7 +497,7 @@
             document.getElementById('groupModal').classList.add('show');
         }
 
-        function editGroup(id, groupId, groupName, inviteLink, welcomeMsg, welcomeEn, adEn, adInterval) {
+        function editGroup(id, groupId, groupName, inviteLink, welcomeMsg, welcomeEn, adEn) {
             document.getElementById('groupModalTitle').textContent = '编辑群组';
             document.getElementById('groupId').value = id;
             document.getElementById('groupIdInput').value = groupId;
@@ -455,7 +506,6 @@
             document.getElementById('welcomeMessage').value = welcomeMsg;
             document.getElementById('welcomeEnabled').checked = welcomeEn;
             document.getElementById('adEnabled').checked = adEn;
-            document.getElementById('adInterval').value = adInterval;
             document.getElementById('groupModal').classList.add('show');
         }
 
@@ -468,8 +518,7 @@
                 inviteLink: document.getElementById('inviteLink').value,
                 welcomeMessage: document.getElementById('welcomeMessage').value,
                 welcomeEnabled: document.getElementById('welcomeEnabled').checked,
-                adEnabled: document.getElementById('adEnabled').checked,
-                adIntervalMinutes: parseInt(document.getElementById('adInterval').value)
+                adEnabled: document.getElementById('adEnabled').checked
             };
             
             const url = id ? API_BASE + '/groups/' + id : API_BASE + '/groups';
@@ -492,204 +541,382 @@
             loadGroups();
         }
 
-        // 欢迎消息
+        // 欢迎消息（单条模式）
         async function loadWelcome() {
-            const keyword = document.getElementById('welcomeSearch').value;
-            const url = keyword ? API_BASE + '/welcome?keyword=' + encodeURIComponent(keyword) : API_BASE + '/welcome';
-            const res = await fetch(url, {credentials: 'include'});
+            // 加载当前启用的欢迎消息
+            const res = await fetch(API_BASE + '/welcome-message/active', {credentials: 'include'});
             const data = await res.json();
-            const tbody = document.querySelector('#welcomeTable tbody');
-            tbody.innerHTML = data.data.map(t => `
-                <tr>
-                    <td>${t.name}</td>
-                    <td>${t.content.substring(0, 50)}${t.content.length > 50 ? '...' : ''}</td>
-                    <td><span class="tag ${t.enabled ? 'tag-enabled' : 'tag-disabled'}">${t.enabled ? '启用' : '禁用'}</span></td>
-                    <td>
-                        <button class="btn btn-primary" onclick="editWelcome(${t.id},'${t.name}','${t.content}',${t.enabled})">编辑</button>
-                        <button class="btn btn-danger" onclick="deleteWelcome(${t.id})">删除</button>
-                    </td>
-                </tr>
-            `).join('');
+            
+            if (data.data) {
+                document.getElementById('welcomeContent').value = data.data.content || '';
+                document.getElementById('welcomeEnabled').checked = data.data.enabled !== false;
+            } else {
+                document.getElementById('welcomeContent').value = '';
+                document.getElementById('welcomeEnabled').checked = true;
+            }
         }
-
-        function searchWelcome() {
-            loadWelcome();
-        }
-
-        function showWelcomeModal() {
-            document.getElementById('welcomeModalTitle').textContent = '新建欢迎模板';
-            document.getElementById('welcomeForm').reset();
-            document.getElementById('welcomeId').value = '';
-            document.getElementById('welcomeModal').classList.add('show');
-        }
-
-        function editWelcome(id, name, content, enabled) {
-            document.getElementById('welcomeModalTitle').textContent = '编辑欢迎模板';
-            document.getElementById('welcomeId').value = id;
-            document.getElementById('welcomeName').value = name;
-            document.getElementById('welcomeContent').value = content;
-            document.getElementById('welcomeEnabled2').checked = enabled;
-            document.getElementById('welcomeModal').classList.add('show');
-        }
-
-        document.getElementById('welcomeForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('welcomeId').value;
-            const template = {
-                name: document.getElementById('welcomeName').value,
-                content: document.getElementById('welcomeContent').value,
-                enabled: document.getElementById('welcomeEnabled2').checked
+        
+        async function saveWelcomeMessage() {
+            const content = document.getElementById('welcomeContent').value.trim();
+            const enabled = document.getElementById('welcomeEnabled').checked;
+            
+            if (!content) {
+                alert('请输入欢迎消息内容');
+                return;
+            }
+            
+            // 先获取当前ID
+            const getRes = await fetch(API_BASE + '/welcome-message/active', {credentials: 'include'});
+            const getData = await getRes.json();
+            
+            const message = {
+                content: content,
+                enabled: enabled
             };
             
-            const url = id ? API_BASE + '/welcome/' + id : API_BASE + '/welcome';
-            const method = id ? 'PUT' : 'POST';
+            let url = API_BASE + '/welcome-message';
+            let method = 'POST';
+            
+            if (getData.data && getData.data.id) {
+                message.id = getData.data.id;
+                url = API_BASE + '/welcome-message';
+                method = 'POST'; // 复用保存逻辑
+            }
             
             await fetch(url, {
-                method,
+                method: method,
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(template),
+                body: JSON.stringify(message),
                 credentials: 'include'
             });
             
-            closeModal('welcomeModal');
-            loadWelcome();
-        };
-
-        async function deleteWelcome(id) {
-            if (!confirm('确定删除?')) return;
-            await fetch(API_BASE + '/welcome/' + id, {method: 'DELETE', credentials: 'include'});
+            alert('保存成功！');
             loadWelcome();
         }
 
-        // 广告消息
-        let buttonConfigList = []; // 可视化按钮配置
+        // 广告消息相关
+        let currentAdId = null;
+        let currentButtonRows = []; // 当前广告的按钮行配置
+        let editingButtonRowIndex = -1; // 正在编辑的按钮行索引
+        let tempButtonRow = []; // 弹窗中临时存储的按钮
+        
+        // 加载系统配置（广告周期等）
+        async function loadSystemConfig() {
+            try {
+                const res = await fetch(API_BASE + '/system-config', {credentials: 'include'});
+                const data = await res.json();
+                if (data.data) {
+                    const cycleMinutes = data.data.ad_cycle_minutes || '60';
+                    document.getElementById('adCycleMinutes').value = cycleMinutes;
+                }
+            } catch (e) {
+                console.error('加载配置失败:', e);
+            }
+        }
+        
+        // 保存广告发送周期
+        async function saveAdCycle() {
+            const value = document.getElementById('adCycleMinutes').value;
+            if (!value || value < 1) {
+                alert('请输入有效的分钟数');
+                return;
+            }
+            
+            await fetch(API_BASE + '/system-config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({key: 'ad_cycle_minutes', value: value}),
+                credentials: 'include'
+            });
+            
+            alert('保存成功！');
+            loadSystemConfig();
+        }
 
+        // 加载广告消息（卡片展示）
         async function loadAds() {
-            const keyword = document.getElementById('adSearch').value;
-            const url = keyword ? API_BASE + '/ad-messages?keyword=' + encodeURIComponent(keyword) : API_BASE + '/ad-messages';
-            const res = await fetch(url, {credentials: 'include'});
+            const res = await fetch(API_BASE + '/ad-messages', {credentials: 'include'});
             const data = await res.json();
-            const tbody = document.querySelector('#adTable tbody');
-            tbody.innerHTML = data.data.map(m => `
-                <tr>
-                    <td>${m.title}</td>
-                    <td>${m.content.substring(0, 50)}${m.content.length > 50 ? '...' : ''}</td>
-                    <td>${m.buttonLayout}</td>
-                    <td><span class="tag ${m.enabled ? 'tag-enabled' : 'tag-disabled'}">${m.enabled ? '启用' : '禁用'}</span></td>
-                    <td>
-                        <button class="btn btn-primary" onclick="editAd(${m.id},'${m.title}','${m.content}','${(m.buttonConfig || m.buttons || '[]').replace(/'/g, "&#39;")}',${m.enabled},'${m.buttonLayout}',${m.delaySeconds || 5},${m.maxPerMinute || 20})">编辑</button>
-                        <button class="btn btn-danger" onclick="deleteAd(${m.id})">删除</button>
-                    </td>
-                </tr>
-            `).join('');
+            const ads = data.data || [];
+            
+            // 获取群数量，更新全局限流信息
+            const groupsRes = await fetch(API_BASE + '/groups', {credentials: 'include'});
+            const groupsData = await groupsRes.json();
+            const groups = groupsData.data || [];
+            const enabledGroups = groups.filter(g => g.adEnabled);
+            const groupCount = enabledGroups.length;
+            
+            // 获取系统配置
+            const cycleMinutes = document.getElementById('adCycleMinutes').value || 60;
+            
+            // 计算理论耗时
+            const estimatedMinutes = groupCount > 0 ? Math.ceil(groupCount / 20) : 0; // 默认每分钟20条
+            
+            // 更新全局限流显示
+            document.getElementById('totalGroupCount').textContent = groupCount;
+            document.getElementById('estimatedMinutes').textContent = estimatedMinutes;
+            
+            const cardArea = document.getElementById('adCardArea');
+            const emptyState = document.getElementById('adEmptyState');
+            const btnNew = document.getElementById('btnNewAd');
+            
+            if (ads.length === 0) {
+                // 无广告
+                cardArea.style.display = 'none';
+                emptyState.style.display = 'block';
+                btnNew.style.display = 'block';
+                currentAdId = null;
+                return;
+            }
+            
+            // 有广告，显示第一条
+            const ad = ads[0];
+            currentAdId = ad.id;
+            cardArea.style.display = 'block';
+            emptyState.style.display = 'none';
+            btnNew.style.display = 'none';
+            
+            // 填充基本信息
+            document.getElementById('previewTitle').textContent = ad.title || '';
+            document.getElementById('previewContent').textContent = ad.content || '';
+            const statusEl = document.getElementById('previewStatus');
+            statusEl.textContent = ad.enabled ? '启用' : '禁用';
+            statusEl.className = 'tag ' + (ad.enabled ? 'tag-enabled' : 'tag-disabled');
+            
+            // 加载按钮行配置
+            try {
+                currentButtonRows = JSON.parse(ad.buttonConfig || '[]');
+            } catch(e) {
+                currentButtonRows = [];
+            }
+            renderButtonRowsPreview();
         }
 
-        function searchAds() {
-            loadAds();
-        }
-
-        // 可视化按钮配置
-        function addButton() {
-            const btn = {text: '', icon: 'link', type: 'url', value: ''};
-            buttonConfigList.push(btn);
-            renderButtons();
-        }
-
-        function removeButton(index) {
-            buttonConfigList.splice(index, 1);
-            renderButtons();
-        }
-
-        function updateButton(index, field, value) {
-            buttonConfigList[index][field] = value;
-        }
-
-        function renderButtons() {
-            const container = document.getElementById('buttonList');
-            container.innerHTML = buttonConfigList.map((btn, idx) => `
-                <div style="background: white; padding: 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #eee;">
-                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                        <input type="text" placeholder="按钮文字" value="${btn.text}" 
-                            onchange="updateButton(${idx}, 'text', this.value)"
-                            style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                        <select onchange="updateButton(${idx}, 'type', this.value)" 
-                            style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="url" ${btn.type === 'url' ? 'selected' : ''}>网页链接</option>
-                            <option value="chat" ${btn.type === 'chat' ? 'selected' : ''}>跳转群/频道</option>
-                        </select>
-                        <button type="button" onclick="removeButton(${idx})" style="color: red; border: none; background: none; cursor: pointer;">✕</button>
+        // 渲染按钮行预览
+        function renderButtonRowsPreview() {
+            const container = document.getElementById('buttonRowsPreview');
+            if (!currentButtonRows || currentButtonRows.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center;">暂无按钮配置</p>';
+                return;
+            }
+            
+            container.innerHTML = currentButtonRows.map((row, idx) => `
+                <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: bold; color: #666;">按钮行 ${idx + 1}</span>
+                        <div>
+                            <button onclick="editButtonRow(${idx})" style="padding: 4px 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 4px;">编辑</button>
+                            <button onclick="deleteButtonRow(${idx})" style="padding: 4px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">删除</button>
+                        </div>
                     </div>
-                    <input type="text" placeholder="${btn.type === 'url' ? 'https://example.com' : 'https://t.me/群链接'}" 
-                        value="${btn.value}" onchange="updateButton(${idx}, 'value', this.value)"
-                        style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${(row.buttons || []).map(btn => 
+                            `<span style="padding: 6px 12px; background: #e8f4ff; color: #2563eb; border-radius: 4px; font-size: 13px;">${btn.text || '未命名'}</span>`
+                        ).join('')}
+                    </div>
                 </div>
             `).join('');
         }
 
+        // 新建广告
         function showAdModal() {
+            if (currentAdId) {
+                alert('已存在广告消息，请先删除现有广告');
+                return;
+            }
             document.getElementById('adModalTitle').textContent = '新建广告消息';
             document.getElementById('adForm').reset();
-            buttonConfigList = [];
-            renderButtons();
             document.getElementById('adId').value = '';
             document.getElementById('adModal').classList.add('show');
         }
 
-        function editAd(id, title, content, buttonConfig, enabled, layout, delay, maxPerMinute) {
-            document.getElementById('adModalTitle').textContent = '编辑广告消息';
-            document.getElementById('adId').value = id;
-            document.getElementById('adTitle').value = title;
-            document.getElementById('adContent').value = content;
-            document.getElementById('adEnabled2').checked = enabled;
-            document.getElementById('adLayout').value = layout || '1x2';
-            document.getElementById('adDelay').value = delay || 5;
-            document.getElementById('adMaxPerMinute').value = maxPerMinute || 20;
-            
-            // 加载可视化按钮配置
-            try {
-                buttonConfigList = JSON.parse(buttonConfig || '[]');
-            } catch(e) {
-                buttonConfigList = [];
-            }
-            renderButtons();
-            
-            document.getElementById('adModal').classList.add('show');
+        // 编辑广告基本信息
+        function editAdInfo() {
+            if (!currentAdId) return;
+            fetch(API_BASE + '/ad-messages/' + currentAdId, {credentials: 'include'})
+                .then(res => res.json())
+                .then(result => {
+                    const ad = result.data;
+                    document.getElementById('adModalTitle').textContent = '编辑广告消息';
+                    document.getElementById('adId').value = ad.id;
+                    document.getElementById('adTitle').value = ad.title || '';
+                    document.getElementById('adContent').value = ad.content || '';
+                    document.getElementById('adDelay').value = ad.delaySeconds || 5;
+                    document.getElementById('adMaxPerMinute').value = ad.maxPerMinute || 20;
+                    document.getElementById('adEnabled2').checked = ad.enabled !== false;
+                    document.getElementById('adModal').classList.add('show');
+                });
         }
 
+        // 删除广告
+        function deleteAdInfo() {
+            if (!currentAdId) return;
+            if (!confirm('确定删除广告？')) return;
+            fetch(API_BASE + '/ad-messages/' + currentAdId, {method: 'DELETE', credentials: 'include'})
+                .then(() => {
+                    currentAdId = null;
+                    currentButtonRows = [];
+                    loadAds();
+                });
+        }
+
+        // 保存广告基本信息
         document.getElementById('adForm').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('adId').value;
             
-            // 转换可视化按钮配置为JSON
-            const buttonConfig = JSON.stringify(buttonConfigList);
-            
             const message = {
                 title: document.getElementById('adTitle').value,
                 content: document.getElementById('adContent').value,
-                buttonConfig: buttonConfig,  // 可视化配置
-                buttonLayout: document.getElementById('adLayout').value,
-                delaySeconds: parseInt(document.getElementById('adDelay').value) || 5,
-                maxPerMinute: parseInt(document.getElementById('adMaxPerMinute').value) || 20,
-                enabled: document.getElementById('adEnabled2').checked
+                enabled: document.getElementById('adEnabled2').checked,
+                buttonConfig: JSON.stringify(currentButtonRows)
             };
             
             const url = id ? API_BASE + '/ad-messages/' + id : API_BASE + '/ad-messages';
             const method = id ? 'PUT' : 'POST';
             
-            await fetch(url, {
+            const res = await fetch(url, {
                 method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(message),
                 credentials: 'include'
             });
             
-            closeModal('adModal');
-            loadAds();
+            if (res.ok) {
+                closeModal('adModal');
+                loadAds();
+            } else {
+                alert('保存失败');
+            }
         };
 
-        async function deleteAd(id) {
-            if (!confirm('确定删除?')) return;
-            await fetch(API_BASE + '/ad-messages/' + id, {method: 'DELETE', credentials: 'include'});
+        // 添加按钮行 - 弹窗
+        function showAddButtonRow() {
+            if (!currentAdId) {
+                alert('请先创建广告');
+                return;
+            }
+            editingButtonRowIndex = -1; // -1 表示新增
+            tempButtonRow = [{text: '', type: 'url', value: ''}];
+            document.getElementById('buttonRowIndex').textContent = currentButtonRows.length + 1;
+            renderButtonInRowModal();
+            document.getElementById('buttonRowModal').classList.add('show');
+        }
+
+        // 编辑按钮行
+        function editButtonRow(index) {
+            editingButtonRowIndex = index;
+            tempButtonRow = JSON.parse(JSON.stringify(currentButtonRows[index].buttons || []));
+            document.getElementById('buttonRowIndex').textContent = index + 1;
+            renderButtonInRowModal();
+            document.getElementById('buttonRowModal').classList.add('show');
+        }
+
+        // 渲染按钮行弹窗中的按钮列表
+        function renderButtonInRowModal() {
+            const container = document.getElementById('buttonInRowList');
+            container.innerHTML = tempButtonRow.map((btn, idx) => `
+                <div style="background: white; padding: 12px; border-radius: 4px; border: 1px solid #ddd;">
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                        <input type="text" placeholder="按钮文字" value="${btn.text || ''}" 
+                            onchange="tempButtonRow[${idx}].text = this.value"
+                            style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <select onchange="tempButtonRow[${idx}].type = this.value" 
+                            style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="url" ${btn.type === 'url' ? 'selected' : ''}>网页链接</option>
+                            <option value="chat" ${btn.type === 'chat' ? 'selected' : ''}>跳转群/频道</option>
+                        </select>
+                        <button type="button" onclick="removeTempButton(${idx})" 
+                            style="padding: 4px 8px; color: red; border: none; background: none; cursor: pointer;">✕</button>
+                    </div>
+                    <input type="text" placeholder="链接地址" 
+                        value="${btn.value || ''}" onchange="tempButtonRow[${idx}].value = this.value"
+                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                </div>
+            `).join('');
+        }
+
+        // 在弹窗中添加按钮
+        function addButtonInRow() {
+            if (tempButtonRow.length >= 3) {
+                alert('每行最多3个按钮');
+                return;
+            }
+            tempButtonRow.push({text: '', type: 'url', value: ''});
+            renderButtonInRowModal();
+        }
+
+        // 移除弹窗中的按钮
+        function removeTempButton(index) {
+            tempButtonRow.splice(index, 1);
+            renderButtonInRowModal();
+        }
+
+        // 保存按钮行
+        async function saveButtonRow() {
+            // 检查按钮是否有效
+            const validButtons = tempButtonRow.filter(btn => btn.text && btn.value);
+            if (validButtons.length === 0) {
+                alert('请至少填写一个完整的按钮（文字+链接）');
+                return;
+            }
+            
+            if (editingButtonRowIndex === -1) {
+                // 新增
+                currentButtonRows.push({buttons: validButtons});
+            } else {
+                // 编辑
+                currentButtonRows[editingButtonRowIndex] = {buttons: validButtons};
+            }
+            
+            // 保存到后端 - 需要获取完整广告信息再更新
+            const adRes = await fetch(API_BASE + '/ad-messages/' + currentAdId, {credentials: 'include'});
+            const adData = await adRes.json();
+            const ad = adData.data;
+            
+            await fetch(API_BASE + '/ad-messages/' + currentAdId, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    title: ad.title,
+                    content: ad.content,
+                    buttonConfig: JSON.stringify(currentButtonRows),
+                    delaySeconds: ad.delaySeconds,
+                    maxPerMinute: ad.maxPerMinute,
+                    enabled: ad.enabled
+                }),
+                credentials: 'include'
+            });
+            
+            closeModal('buttonRowModal');
+            loadAds();
+        }
+
+        // 删除按钮行
+        async function deleteButtonRow(index) {
+            if (!confirm('确定删除此按钮行？')) return;
+            
+            currentButtonRows.splice(index, 1);
+            
+            // 保存到后端 - 需要获取完整广告信息再更新
+            const adRes = await fetch(API_BASE + '/ad-messages/' + currentAdId, {credentials: 'include'});
+            const adData = await adRes.json();
+            const ad = adData.data;
+            
+            await fetch(API_BASE + '/ad-messages/' + currentAdId, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    title: ad.title,
+                    content: ad.content,
+                    buttonConfig: JSON.stringify(currentButtonRows),
+                    delaySeconds: ad.delaySeconds,
+                    maxPerMinute: ad.maxPerMinute,
+                    enabled: ad.enabled
+                }),
+                credentials: 'include'
+            });
+            
             loadAds();
         }
 

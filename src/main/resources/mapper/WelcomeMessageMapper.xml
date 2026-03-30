@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.quntui.repository.WelcomeMessageMapper">
+    <resultMap id="BaseResultMap" type="com.quntui.model.WelcomeMessage">
+        <id column="id" property="id"/>
+        <result column="content" property="content"/>
+        <result column="enabled" property="enabled"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 获取当前启用的欢迎消息 -->
+    <select id="getActive" resultMap="BaseResultMap">
+        SELECT * FROM welcome_message WHERE enabled = TRUE ORDER BY id DESC LIMIT 1
+    </select>
+
+    <!-- 获取所有 -->
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT * FROM welcome_message ORDER BY id DESC
+    </select>
+
+    <!-- 根据ID查询 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT * FROM welcome_message WHERE id = #{id}
+    </select>
+
+    <!-- 保存 -->
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO welcome_message (content, enabled, created_at, updated_at)
+        VALUES (#{content}, #{enabled}, NOW(), NOW())
+        <selectKey keyProperty="id" resultType="long">
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+    </insert>
+
+    <!-- 删除 -->
+    <delete id="deleteById">
+        DELETE FROM welcome_message WHERE id = #{id}
+    </delete>
+</mapper>
