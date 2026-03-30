@@ -78,17 +78,18 @@ public class TgGroupController {
         return result;
     }
     
-    // 下载导入模板 (CSV)
+    // 下载导入模板 (Excel)
     @GetMapping("/template")
-    public ResponseEntity<String> downloadTemplate() throws Exception {
-        String template = tgGroupService.getTemplate();
+    public ResponseEntity<byte[]> downloadTemplate() throws Exception {
+        byte[] excel = tgGroupService.getExcelTemplate();
+        
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType("text/csv;charset=UTF-8"));
-        headers.setContentDispositionFormData("attachment", "群组导入模板.csv");
-        return new ResponseEntity<>(template, headers, HttpStatus.OK);
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "群组导入模板.xlsx");
+        return new ResponseEntity<>(excel, headers, HttpStatus.OK);
     }
     
-    // 导入群组 (CSV)
+    // 导入群组 (Excel)
     @PostMapping("/import")
     public Map<String, Object> importGroups(@RequestParam("file") MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
@@ -100,14 +101,14 @@ public class TgGroupController {
         }
         
         String filename = file.getOriginalFilename();
-        if (filename == null || (!filename.toLowerCase().endsWith(".csv") && !filename.toLowerCase().endsWith(".txt"))) {
+        if (filename == null || !filename.toLowerCase().endsWith(".xlsx")) {
             result.put("code", 1);
-            result.put("msg", "请上传 CSV 格式文件(.csv)");
+            result.put("msg", "请上传 Excel 格式文件(.xlsx)");
             return result;
         }
         
         try {
-            int count = tgGroupService.importGroups(file);
+            int count = tgGroupService.importGroupsFromExcel(file);
             result.put("code", 0);
             result.put("msg", "导入成功，共 " + count + " 条记录");
             result.put("count", count);

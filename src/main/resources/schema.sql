@@ -1,8 +1,9 @@
 -- 群推宝数据库初始化脚本
+
 -- 创建表
 
 -- 1. 管理员表
-CREATE TABLE IF NOT EXISTS admin_user (
+CREATE TABLE IF NOT EXISTS admin_user  (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(64) NOT NULL,
@@ -12,7 +13,7 @@ CREATE TABLE IF NOT EXISTS admin_user (
 );
 
 -- 2. TG群组表
-CREATE TABLE IF NOT EXISTS tg_group (
+CREATE TABLE IF NOT EXISTS tg_group  (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     group_id BIGINT NOT NULL UNIQUE COMMENT 'TG群ID',
     group_name VARCHAR(255) COMMENT '群名称',
@@ -27,7 +28,7 @@ CREATE TABLE IF NOT EXISTS tg_group (
 );
 
 -- 3. 欢迎消息模板表
-CREATE TABLE IF NOT EXISTS welcome_template (
+CREATE TABLE IF NOT EXISTS welcome_template  (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL COMMENT '模板名称',
     content TEXT NOT NULL COMMENT '欢迎消息内容',
@@ -37,7 +38,7 @@ CREATE TABLE IF NOT EXISTS welcome_template (
 );
 
 -- 4. 广告消息表
-CREATE TABLE IF NOT EXISTS ad_message (
+CREATE TABLE IF NOT EXISTS ad_message  (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255) COMMENT '标题',
     content TEXT NOT NULL COMMENT '消息内容',
@@ -52,7 +53,7 @@ CREATE TABLE IF NOT EXISTS ad_message (
 );
 
 -- 5. 发送日志表
-CREATE TABLE IF NOT EXISTS send_log (
+CREATE TABLE IF NOT EXISTS send_log  (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     group_id BIGINT COMMENT '群ID',
     target_user_id BIGINT COMMENT '目标用户ID',
@@ -72,7 +73,7 @@ ON DUPLICATE KEY UPDATE username=username;
 
 
 -- 全局欢迎消息表（只保留一条）
-CREATE TABLE IF NOT EXISTS welcome_message (
+CREATE TABLE IF NOT EXISTS welcome_message  (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     content TEXT NOT NULL COMMENT '欢迎消息内容（支持多行）',
     enabled BOOLEAN DEFAULT TRUE COMMENT '是否启用',
@@ -83,7 +84,7 @@ CREATE TABLE IF NOT EXISTS welcome_message (
 
 
 -- 系统配置表
-CREATE TABLE IF NOT EXISTS system_config (
+CREATE TABLE IF NOT EXISTS system_config  (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     config_key VARCHAR(50) NOT NULL UNIQUE COMMENT '配置键',
     config_value TEXT COMMENT '配置值',

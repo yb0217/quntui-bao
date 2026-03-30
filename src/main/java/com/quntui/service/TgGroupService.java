@@ -71,9 +71,23 @@ public class TgGroupService {
     }
     
     /**
+     * 从 Excel 导入群组
+     */
+    public int importGroupsFromExcel(MultipartFile file) throws Exception {
+        return importExportService.importGroupsFromExcel(file);
+    }
+    
+    /**
      * 下载导入模板
      */
     public String getTemplate() throws Exception {
         return importExportService.generateGroupTemplate();
+    }
+    
+    /**
+     * 下载导入模板 Excel
+     */
+    public byte[] getExcelTemplate() throws Exception {
+        return importExportService.generateGroupExcelTemplate();
     }
 }

@@ -8,15 +8,18 @@ import json
 import time
 import requests
 from telethon import TelegramClient
+from socks import SOCKS5
 
-# 尝试导入配置，如果不存在则使用默认值
-try:
-    from .config import Config
-except ImportError:
-    class Config:
-        BOT_TOKEN = os.environ.get('BOT_TOKEN', '')
-        API_ID = int(os.environ.get('API_ID', '12345678'))
-        API_HASH = os.environ.get('API_HASH', 'abcdef123456')
+
+# 从环境变量获取配置
+def get_config():
+    """获取 Telegram 配置"""
+    from socks import SOCKS5
+    return {
+        'api_id': int(os.environ.get('API_ID', '21791619')),
+        'api_hash': os.environ.get('API_HASH', '282e7c380c97f10391003d88c48701fe'),
+        'proxy': (SOCKS5, '127.0.0.1', 7890) if os.environ.get('PROXY_ENABLED', 'true').lower() == 'true' else None
+    }
 
 
 class QuntuiAPIClient:
@@ -34,20 +37,22 @@ class QuntuiAPIClient:
     
     def get_telegram_client(self):
         """获取 Telethon 客户端"""
+        cfg = get_config()
         return TelegramClient(
             'quntui_bot',
-            int(Config.API_ID),
-            Config.API_HASH,
-            proxy=Config.PROXY
+            cfg['api_id'],
+            cfg['api_hash'],
+            proxy=cfg['proxy']
         )
     
     def get_telegram_client_with_session(self, session_path):
         """获取 Telethon 客户端（指定session路径）"""
+        cfg = get_config()
         return TelegramClient(
             session_path,
-            int(Config.API_ID),
-            Config.API_HASH,
-            proxy=Config.PROXY
+            cfg['api_id'],
+            cfg['api_hash'],
+            proxy=cfg['proxy']
         )
     
     def initialize_cache(self):

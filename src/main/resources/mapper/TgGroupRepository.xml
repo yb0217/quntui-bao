@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.quntui.repository.TgGroupRepository">
+    
+    <insert id="save" parameterType="com.quntui.model.TgGroup">
+        INSERT INTO tg_group (group_id, group_name, invite_link, welcome_enabled, welcome_message, ad_enabled, ad_interval_minutes, created_at, updated_at)
+        VALUES (#{groupId}, #{groupName}, #{inviteLink}, #{welcomeEnabled}, #{welcomeMessage}, #{adEnabled}, #{adIntervalMinutes}, NOW(), NOW())
+    </insert>
+    
+    <update id="update" parameterType="com.quntui.model.TgGroup">
+        UPDATE tg_group SET
+            group_name = #{groupName},
+            invite_link = #{inviteLink},
+            welcome_enabled = #{welcomeEnabled},
+            welcome_message = #{welcomeMessage},
+            ad_enabled = #{adEnabled},
+            ad_interval_minutes = #{adIntervalMinutes},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+    
+    <select id="findByGroupId" parameterType="long" resultType="com.quntui.model.TgGroup">
+        SELECT * FROM tg_group WHERE group_id = #{groupId}
+    </select>
+</mapper>

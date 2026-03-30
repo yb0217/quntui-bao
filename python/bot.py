@@ -3,10 +3,12 @@
 群推宝 Python 机器人
 - 监听群新成员加入，发送欢迎消息
 - 定时发送广告消息
+- 配置从 Java API 获取
 """
 import asyncio
 import os
 import sys
+import requests
 from telethon import events, Button
 from telethon.errors import FloodWaitError
 from telethon.utils import get_display_name
@@ -15,13 +17,38 @@ from telethon.utils import get_display_name
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from python.api_client import QuntuiAPIClient
-from python.config import Config
+import gc
+
+
+# 从 API 获取配置
+def get_telegram_config():
+    """从 Java API 获取 Telegram 配置"""
+    api_url = os.environ.get('API_URL', 'http://localhost:8083')
+    try:
+        resp = requests.get(f"{api_url}/api/bot-config", timeout=5)
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception as e:
+        print(f"⚠️ 获取配置失败，使用环境变量: {e}")
+    
+    # 回退到环境变量
+    return {
+        'botToken': os.environ.get('BOT_TOKEN', ''),
+        'apiId': int(os.environ.get('API_ID', '0')),
+        'apiHash': os.environ.get('API_HASH', ''),
+        'proxyEnabled': True,
+        'proxyHost': '127.0.0.1',
+        'proxyPort': 7890
+    }
 
 class QuntuiBot:
     def __init__(self, api_url="http://localhost:8083"):
         self.api = QuntuiAPIClient(api_url)
         self.client = None
-        self.config = Config()
+        self.running = True
+        
+        # 获取 Telegram 配置
+        self.tg_config = get_telegram_config()
         
     async def start(self):
         """启动机器人"""
@@ -29,12 +56,15 @@ class QuntuiBot:
         
         # 使用内存 session 避免文件锁定问题
         self.client = self.api.get_telegram_client_with_session(':memory:')
-        await self.client.start(bot_token=self.config.BOT_TOKEN)
+        await self.client.start(bot_token=self.tg_config['botToken'])
         
-        print(f"✅ 机器人已启动: @{self.config.BOT_USERNAME}")
+        print(f"✅ 机器人已启动")
         
         # 注册事件处理器
         self.register_handlers()
+        
+        # 启动内存清理定时任务
+        asyncio.create_task(self.memory_cleanup())
         
         # 启动广告定时任务
         asyncio.create_task(self.ad_scheduler())
@@ -85,17 +115,24 @@ class QuntuiBot:
                 await self.client.send_message(chat_id, welcome_msg)
                 print(f"👋 欢迎消息已发送到群 {chat_id}")
                 
-                # 记录发送日志
-                self.api.record_send_log(
-                    group_id=chat_id,
-                    target_user_id=user.id,
-                    message_type='welcome',
-                    content=welcome_msg,
-                    success=True
-                )
+                # TODO: 暂时屏蔽发送日志
+                # self.api.record_send_log(
+                #     group_id=chat_id,
+                #     target_user_id=user.id,
+                #     message_type='welcome',
+                #     content=welcome_msg,
+                #     success=True
+                # )
                 
         except Exception as e:
             print(f"❌ 处理新成员加入失败: {e}")
+    
+    async def memory_cleanup(self):
+        """定期清理内存，防止内存泄漏"""
+        while self.running:
+            await asyncio.sleep(300)  # 每 5 分钟清理一次
+            gc.collect()
+            print("🧹 内存清理完成")
     
     async def ad_scheduler(self):
         """广告定时发送任务 - 全局限流，一轮发完所有群"""
@@ -195,15 +232,15 @@ class QuntuiBot:
                         # 确保 buttons 为 None 而不是空列表
                         await self.client.send_message(group_id, message, buttons=buttons if buttons else None)
                         
-                        # 记录日志
-                        self.api.record_send_log(
-                            group_id=group_id,
-                            target_user_id=None,
-                            message_type='ad',
-                            ad_message_id=ad.get('id'),
-                            content=content,
-                            success=True
-                        )
+                        # TODO: 暂时屏蔽发送日志
+                        # self.api.record_send_log(
+                        #     group_id=group_id,
+                        #     target_user_id=None,
+                        #     message_type='ad',
+                        #     ad_message_id=ad.get('id'),
+                        #     content=content,
+                        #     success=True
+                        # )
                         
                         # 更新群的最后发送时间
                         self.api.update_group_last_ad_time(group_id)
@@ -216,15 +253,16 @@ class QuntuiBot:
                         await asyncio.sleep(e.seconds)
                     except Exception as e:
                         print(f"❌ 发送广告到群 {group_id} 失败: {e}")
-                        self.api.record_send_log(
-                            group_id=group_id,
-                            target_user_id=None,
-                            message_type='ad',
-                            ad_message_id=ad.get('id'),
-                            content=ad.get('content', ''),
-                            success=False,
-                            error_msg=str(e)
-                        )
+                        # TODO: 暂时屏蔽发送日志
+                        # self.api.record_send_log(
+                        #     group_id=group_id,
+                        #     target_user_id=None,
+                        #     message_type='ad',
+                        #     ad_message_id=ad.get('id'),
+                        #     content=ad.get('content', ''),
+                        #     success=False,
+                        #     error_msg=str(e)
+                        # )
                     
                     # 随机间隔 2-(delay_base+2) 秒
                     interval = random.randint(2, delay_base + 2)
