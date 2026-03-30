@@ -1,4 +1,11 @@
 # 开发环境配置
+spring:
+  datasource:
+    url: jdbc:mysql://rm-bp1m2om694f9mmx6dto.mysql.rds.aliyuncs.com:3306/quntui_bao?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: fish
+    password: qtz#923812
+
+# Telegram 开发环境配置
 telegram:
   bot-token: 8380175815:AAG-ynueRiEkNWDFULpc8VNhRD5b3B3f0Cc
   api-id: 21791619

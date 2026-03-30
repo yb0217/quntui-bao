@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: quntui-bao
+  profiles:
+    active: dev  # 默认开发环境
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:mysql://rm-bp1m2om694f9mmx6dto.mysql.rds.aliyuncs.com:3306/quntui_bao?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
@@ -19,16 +21,6 @@ spring:
   web:
     resources:
       static-locations: classpath:/static/
-
-# Telegram 机器人配置（通用）
-telegram:
-  bot-token: ${BOT_TOKEN:8380175815:AAG-ynueRiEkNWDFULpc8VNhRD5b3B3f0Cc}
-  api-id: ${API_ID:21791619}
-  api-hash: ${API_HASH:282e7c380c97f10391003d88c48701fe}
-  proxy:
-    enabled: true
-    host: 127.0.0.1
-    port: 7890
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

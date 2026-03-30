@@ -1,9 +1,14 @@
 # 生产环境配置
+spring:
+  datasource:
+    url: jdbc:mysql://生产环境地址:3306/quntui_bao
+    username: 生产环境用户名
+    password: 生产环境密码
+
+# Telegram 生产环境配置（通过环境变量传入）
 telegram:
   bot-token: ${BOT_TOKEN}
   api-id: ${API_ID}
   api-hash: ${API_HASH}
   proxy:
     enabled: false
-    host: 
-    port: 0
