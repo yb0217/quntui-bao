@@ -36,7 +36,7 @@ def get_telegram_config():
         'botToken': os.environ.get('BOT_TOKEN', ''),
         'apiId': int(os.environ.get('API_ID', '0')),
         'apiHash': os.environ.get('API_HASH', ''),
-        'proxyEnabled': True,
+        'proxyEnabled': False,
         'proxyHost': '127.0.0.1',
         'proxyPort': 7890
     }

@@ -5,19 +5,7 @@ spring:
   application:
     name: quntui-bao
   profiles:
-    active: dev  # 默认开发环境
-  datasource:
-    type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:mysql://rm-bp1m2om694f9mmx6dto.mysql.rds.aliyuncs.com:3306/quntui_bao?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-    username: fish
-    password: qtz#923812
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      connectionInitSql: SET NAMES utf8mb4
-      connection-sql: SET CHARACTER SET utf8mb4
-  sql:
-    init:
-      mode: always
+    active: prod  # 默认开发环境
   web:
     resources:
       static-locations: classpath:/static/

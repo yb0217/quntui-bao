@@ -18,7 +18,7 @@ def get_config():
     return {
         'api_id': int(os.environ.get('API_ID', '21791619')),
         'api_hash': os.environ.get('API_HASH', '282e7c380c97f10391003d88c48701fe'),
-        'proxy': (SOCKS5, '127.0.0.1', 7890) if os.environ.get('PROXY_ENABLED', 'true').lower() == 'true' else None
+        'proxy': (SOCKS5, '127.0.0.1', 7890) if os.environ.get('PROXY_ENABLED', 'false').lower() == 'true' else None
     }
 
 
