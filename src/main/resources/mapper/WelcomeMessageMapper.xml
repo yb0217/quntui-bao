@@ -24,7 +24,7 @@
         SELECT * FROM welcome_message WHERE id = #{id}
     </select>
 
-    <!-- 保存 -->
+    <!-- 保存（新增） -->
     <insert id="save" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO welcome_message (content, enabled, created_at, updated_at)
         VALUES (#{content}, #{enabled}, NOW(), NOW())
@@ -32,6 +32,13 @@
             SELECT LAST_INSERT_ID()
         </selectKey>
     </insert>
+
+    <!-- 更新 -->
+    <update id="update">
+        UPDATE welcome_message 
+        SET content = #{content}, enabled = #{enabled}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
 
     <!-- 删除 -->
     <delete id="deleteById">

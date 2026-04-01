@@ -19,6 +19,9 @@ public interface WelcomeMessageMapper {
     // 保存（插入或更新）
     int save(WelcomeMessage message);
     
+    // 更新
+    int update(WelcomeMessage message);
+    
     // 删除
     int deleteById(@Param("id") Long id);
 }

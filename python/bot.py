@@ -88,7 +88,8 @@ class QuntuiBot:
         @self.client.on(events.ChatAction)
         async def on_chat_action(event):
             """处理群事件（成员加入等）"""
-            if event.user_joined or event.user_added:
+            # user_added 在用户被拉进群时也会触发 user_joined，所以只用 user_added 避免重复
+            if event.user_added:
                 await self.handle_new_member(event)
         
         print("✅ 事件处理器已注册")
@@ -123,13 +124,19 @@ class QuntuiBot:
             if welcome_msg:
                 # 获取用户信息，用于 @ 提及
                 user_name = user.first_name or "朋友"
-                user_mention = f"@{user.username}" if user.username else user_name
+                
+                # 有 username 用 @，没有用 HTML mention（即使没有 username 也能 @）
+                if user.username:
+                    user_mention = f"@{user.username}"
+                else:
+                    # HTML 格式的 mention，通过 user_id 提及
+                    user_mention = f"<a href=\"tg://user?id={user.id}\">{user_name}</a>"
                 
                 # 在欢迎消息前加上 @ 提及
-                final_welcome_msg = f"[{user_mention}] {welcome_msg}"
+                final_welcome_msg = f"{user_mention} {welcome_msg}"
                 
-                # 发送欢迎消息
-                await self.client.send_message(chat_id, final_welcome_msg)
+                # 发送欢迎消息（使用 HTML 解析模式）
+                await self.client.send_message(chat_id, final_welcome_msg, parse_mode='html')
                 print(f"👋 欢迎消息已发送到群 {chat_id}")
                 
                 # TODO: 暂时屏蔽发送日志
@@ -195,6 +202,15 @@ class QuntuiBot:
                     welcome_count = len(self.api._welcome_cache)
                     if welcome_count > 0:
                         print(f"👋 欢迎消息缓存已刷新，当前 {welcome_count} 条")
+                
+                # ===== 4. 刷新群组列表缓存（每30秒） =====
+                if not hasattr(self, '_last_group_refresh') or (asyncio.get_event_loop().time() - self._last_group_refresh) > 30:
+                    old_groups = self.api._all_groups_cache
+                    self.api._all_groups_cache = self.api._fetch_groups()
+                    new_groups = self.api._all_groups_cache
+                    self._last_group_refresh = asyncio.get_event_loop().time()
+                    if len(old_groups) != len(new_groups):
+                        print(f"🔄 群组列表已刷新: {len(old_groups)} -> {len(new_groups)} 个群")
                         
             except Exception as e:
                 print(f"⚠️ 配置监听失败: {e}")
@@ -256,7 +272,9 @@ class QuntuiBot:
                         try:
                             # 解析时间
                             last_str = last_ad_time.replace('Z', '+00:00')
-                            last_time = datetime.fromisoformat(last_str.replace(tzinfo=None))
+                            # 移除时区信息，转换为无时区的datetime
+                            last_str = last_str.replace('+00:00', '')
+                            last_time = datetime.fromisoformat(last_str)
                             local_now = datetime.now()
                             minutes_since_last = (local_now - last_time).total_seconds() / 60
                             

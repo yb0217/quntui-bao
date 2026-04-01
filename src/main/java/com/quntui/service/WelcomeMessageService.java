@@ -35,9 +35,14 @@ public class WelcomeMessageService {
             mapper.save(message);
         } else {
             // 更新
-            mapper.save(message);
+            mapper.update(message);
         }
         return message;
+    }
+    
+    // 更新
+    public void update(WelcomeMessage message) {
+        mapper.update(message);
     }
     
     // 删除

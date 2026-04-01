@@ -335,7 +335,6 @@
             if (data.code === 0) {
                 document.getElementById('loginPage').style.display = 'none';
                 document.getElementById('appPage').style.display = 'flex';
-                loadDashboard();
             } else {
                 alert(data.msg || '登录失败');
             }
@@ -512,8 +511,8 @@
             
             if (getData.data && getData.data.id) {
                 message.id = getData.data.id;
-                url = API_BASE + '/welcome-message';
-                method = 'POST'; // 复用保存逻辑
+                url = API_BASE + '/welcome-message/' + message.id;
+                method = 'PUT'; // 有ID时用PUT更新
             }
             
             await fetch(url, {
@@ -674,8 +673,6 @@
                     document.getElementById('adId').value = ad.id;
                     document.getElementById('adTitle').value = ad.title || '';
                     document.getElementById('adContent').value = ad.content || '';
-                    document.getElementById('adDelay').value = ad.delaySeconds || 5;
-                    document.getElementById('adMaxPerMinute').value = ad.maxPerMinute || 20;
                     document.getElementById('adEnabled2').checked = ad.enabled !== false;
                     document.getElementById('adModal').classList.add('show');
                 });

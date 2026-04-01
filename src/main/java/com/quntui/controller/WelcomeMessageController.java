@@ -55,6 +55,17 @@ public class WelcomeMessageController {
         return result;
     }
     
+    // 更新欢迎消息
+    @PutMapping("/{id}")
+    public Map<String, Object> update(@PathVariable Long id, @RequestBody WelcomeMessage message) {
+        message.setId(id);
+        service.update(message);
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "更新成功");
+        return result;
+    }
+    
     // 删除
     @DeleteMapping("/{id}")
     public Map<String, Object> delete(@PathVariable Long id) {
