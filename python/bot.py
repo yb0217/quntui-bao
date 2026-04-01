@@ -60,11 +60,21 @@ class QuntuiBot:
         
         print(f"✅ 机器人已启动")
         
+        # 初始化配置缓存（用于检测变化）
+        self._config_cache = {
+            'ad_cycle_minutes': self.api.get_ad_cycle_minutes(),
+            'ad_delay_seconds': self.api.get_ad_delay_seconds(),
+            'ad_max_per_minute': self.api.get_ad_max_per_minute()
+        }
+        
         # 注册事件处理器
         self.register_handlers()
         
         # 启动内存清理定时任务
         asyncio.create_task(self.memory_cleanup())
+        
+        # 启动配置监听任务（每30秒检查配置变化）
+        asyncio.create_task(self.config_watcher())
         
         # 启动广告定时任务
         asyncio.create_task(self.ad_scheduler())
@@ -133,6 +143,37 @@ class QuntuiBot:
             await asyncio.sleep(300)  # 每 5 分钟清理一次
             gc.collect()
             print("🧹 内存清理完成")
+    
+    async def config_watcher(self):
+        """监听配置变化，发现变化立即刷新缓存"""
+        while self.running:
+            await asyncio.sleep(30)  # 每 30 秒检查一次
+            
+            try:
+                # 获取最新配置
+                new_cycle = self.api.get_ad_cycle_minutes()
+                new_delay = self.api.get_ad_delay_seconds()
+                new_max = self.api.get_ad_max_per_minute()
+                
+                # 检查是否有变化
+                changed = False
+                if new_cycle != self._config_cache['ad_cycle_minutes']:
+                    print(f"⚡ 检测到配置变化: ad_cycle_minutes {self._config_cache['ad_cycle_minutes']} -> {new_cycle}")
+                    self._config_cache['ad_cycle_minutes'] = new_cycle
+                    changed = True
+                if new_delay != self._config_cache['ad_delay_seconds']:
+                    print(f"⚡ 检测到配置变化: ad_delay_seconds {self._config_cache['ad_delay_seconds']} -> {new_delay}")
+                    self._config_cache['ad_delay_seconds'] = new_delay
+                    changed = True
+                if new_max != self._config_cache['ad_max_per_minute']:
+                    print(f"⚡ 检测到配置变化: ad_max_per_minute {self._config_cache['ad_max_per_minute']} -> {new_max}")
+                    self._config_cache['ad_max_per_minute'] = new_max
+                    changed = True
+                    
+                if changed:
+                    print("✅ 配置已更新，下次广告轮播将使用新配置")
+            except Exception as e:
+                print(f"⚠️ 配置监听失败: {e}")
     
     async def ad_scheduler(self):
         """广告定时发送任务 - 全局限流，一轮发完所有群"""
