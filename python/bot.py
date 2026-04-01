@@ -121,8 +121,15 @@ class QuntuiBot:
                     welcome_msg = '欢迎新朋友！🎉\n请先阅读群规，有问题随时@管理员~'
             
             if welcome_msg:
+                # 获取用户信息，用于 @ 提及
+                user_name = user.first_name or "朋友"
+                user_mention = f"@{user.username}" if user.username else user_name
+                
+                # 在欢迎消息前加上 @ 提及
+                final_welcome_msg = f"[{user_mention}] {welcome_msg}"
+                
                 # 发送欢迎消息
-                await self.client.send_message(chat_id, welcome_msg)
+                await self.client.send_message(chat_id, final_welcome_msg)
                 print(f"👋 欢迎消息已发送到群 {chat_id}")
                 
                 # TODO: 暂时屏蔽发送日志
@@ -145,12 +152,12 @@ class QuntuiBot:
             print("🧹 内存清理完成")
     
     async def config_watcher(self):
-        """监听配置变化，发现变化立即刷新缓存"""
+        """监听配置和消息变化，发现变化立即刷新缓存"""
         while self.running:
             await asyncio.sleep(30)  # 每 30 秒检查一次
             
             try:
-                # 获取最新配置
+                # ===== 1. 检查系统配置变化 =====
                 new_cycle = self.api.get_ad_cycle_minutes()
                 new_delay = self.api.get_ad_delay_seconds()
                 new_max = self.api.get_ad_max_per_minute()
@@ -171,7 +178,24 @@ class QuntuiBot:
                     changed = True
                     
                 if changed:
-                    print("✅ 配置已更新，下次广告轮播将使用新配置")
+                    print("✅ 配置已更新")
+                
+                # ===== 2. 刷新广告消息缓存（每60秒） =====
+                if not hasattr(self, '_last_ad_refresh') or (asyncio.get_event_loop().time() - self._last_ad_refresh) > 60:
+                    self.api._ad_messages_cache = self.api._fetch_ad_messages()
+                    self._last_ad_refresh = asyncio.get_event_loop().time()
+                    ad_count = len(self.api._ad_messages_cache)
+                    if ad_count > 0:
+                        print(f"📢 广告消息缓存已刷新，当前 {ad_count} 条")
+                
+                # ===== 3. 刷新欢迎消息缓存（每60秒） =====
+                if not hasattr(self, '_last_welcome_refresh') or (asyncio.get_event_loop().time() - self._last_welcome_refresh) > 60:
+                    self.api._welcome_cache = self.api._fetch_welcome_templates()
+                    self._last_welcome_refresh = asyncio.get_event_loop().time()
+                    welcome_count = len(self.api._welcome_cache)
+                    if welcome_count > 0:
+                        print(f"👋 欢迎消息缓存已刷新，当前 {welcome_count} 条")
+                        
             except Exception as e:
                 print(f"⚠️ 配置监听失败: {e}")
     
