@@ -276,9 +276,10 @@ class QuntuiBot:
                 while send_index < groups_count:
                     group = enabled_groups[send_index]
                     group_id = group.get('groupId')
-                    ad_interval = group.get('adIntervalMinutes', 60)  # 群独立间隔
+                    # 使用全局周期，废弃群独立间隔
+                    ad_interval = ad_cycle_minutes
                     
-                    # 检查距离上次发送是否达到该群的间隔要求
+                    # 检查距离上次发送是否达到全局周期要求
                     last_ad_time = group.get('lastAdTime')
                     if last_ad_time:
                         from datetime import datetime
@@ -292,8 +293,8 @@ class QuntuiBot:
                             minutes_since_last = (local_now - last_time).total_seconds() / 60
                             
                             if minutes_since_last < ad_interval:
-                                # 未达到该群的间隔，跳到下一个群
-                                print(f"⏭ 群 {group_id} 距离上次发送还差 {ad_interval - minutes_since_last:.1f} 分钟，跳过")
+                                # 未达到全局周期，跳到下一个群
+                                print(f"⏭ 群 {group_id} 距离上次发送还差 {ad_interval - minutes_since_last:.1f} 分钟(周期{ad_interval}分钟)，跳过")
                                 send_index += 1
                                 continue
                         except Exception as e:
