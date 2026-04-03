@@ -61,11 +61,14 @@ class QuntuiBot:
         """启动机器人"""
         print("🎲 群推宝机器人启动中...")
         
-        # 使用内存 session 避免文件锁定问题
-        self.client = self.api.get_telegram_client_with_session(':memory:')
+        # 使用文件 session，确保实体信息持久化
+        self.client = self.api.get_telegram_client_with_session('/tmp/quntui_bot_session')
         await self.client.start(bot_token=self.tg_config['botToken'])
         
         print(f"✅ 机器人已启动")
+        
+        # 预加载群组实体（解决 Could not find the input entity 问题）
+        await self.preload_group_entities()
         
         # 初始化配置缓存（用于检测变化）
         self._config_cache = {
@@ -88,6 +91,20 @@ class QuntuiBot:
         
         # 保持运行
         await self.client.run_until_disconnected()
+    
+    async def preload_group_entities(self):
+        """预加载所有群组实体到缓存"""
+        print("📍 预加载群组实体...")
+        groups = self.api.get_groups()
+        for group in groups:
+            group_id = group.get('groupId')
+            try:
+                # 尝试获取实体（这会将实体存入 session）
+                entity = await self.client.get_entity(group_id)
+                print(f"  ✅ 已缓存群实体: {group_id} ({entity.title if hasattr(entity, 'title') else 'unknown'})")
+            except Exception as e:
+                print(f"  ⚠️ 无法缓存群 {group_id}: {e}")
+        print("📍 群组实体预加载完成")
     
     def register_handlers(self):
         """注册事件处理器"""
@@ -329,11 +346,19 @@ class QuntuiBot:
                     
                     # 发送广告
                     try:
+                        # 先获取群组实体（确保 Telethon 知道群信息）
+                        try:
+                            entity = await self.client.get_entity(group_id)
+                            print(f"📍 获取到群实体: {entity.title if hasattr(entity, 'title') else group_id}")
+                        except Exception as e:
+                            print(f"⚠️ 获取群实体失败: {e}，尝试直接发送...")
+                            entity = group_id  # 回退到直接使用 group_id
+                        
                         # 先删除旧广告（如果存在）
                         last_ad_msg_id = self.api.get_last_message_id(group_id, 'ad')
                         if last_ad_msg_id:
                             try:
-                                await self.client.delete_messages(group_id, [last_ad_msg_id])
+                                await self.client.delete_messages(entity, [last_ad_msg_id])
                                 print(f"🗑️ 已删除群 {group_id} 的旧广告 msg_id={last_ad_msg_id}")
                                 sent_this_minute += 1  # 删除也计入限流
                             except Exception as e:
@@ -344,7 +369,7 @@ class QuntuiBot:
                         message = f"*{title}*\n\n{content}" if title else content
                         
                         # 确保 buttons 为 None 而不是空列表
-                        sent_msg = await self.client.send_message(group_id, message, buttons=buttons if buttons else None)
+                        sent_msg = await self.client.send_message(entity, message, buttons=buttons if buttons else None)
                         
                         # 保存新广告消息ID
                         self.api.save_message_id(group_id, 'ad', sent_msg.id)

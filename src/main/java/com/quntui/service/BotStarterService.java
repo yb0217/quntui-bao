@@ -72,7 +72,7 @@ public class BotStarterService implements ApplicationRunner {
             pb.environment().put("API_ID", "21791619");
             pb.environment().put("API_HASH", "282e7c380c97f10391003d88c48701fe");
             pb.environment().put("API_BASE", "http://localhost:8083");
-            pb.environment().put("PROXY_ENABLED", "true");
+            pb.environment().put("PROXY_ENABLED", "false");
             
             pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(scriptDir, "bot.log")));
             pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(scriptDir, "bot.log")));
