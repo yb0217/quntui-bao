@@ -13,6 +13,10 @@ from telethon import events, Button
 from telethon.errors import FloodWaitError
 from telethon.utils import get_display_name
 
+# 调试：打印所有参数
+print(f"DEBUG: sys.argv = {sys.argv}")
+print(f"DEBUG: len(sys.argv) = {len(sys.argv)}")
+
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -23,20 +27,23 @@ import gc
 # 从 API 获取配置
 def get_telegram_config():
     """从 Java API 获取 Telegram 配置"""
-    api_url = os.environ.get('API_URL', 'http://localhost:8083')
-    try:
-        resp = requests.get(f"{api_url}/api/bot-config", timeout=5)
-        if resp.status_code == 200:
-            return resp.json()
-    except Exception as e:
-        print(f"⚠️ 获取配置失败，使用环境变量: {e}")
+    # 先检查命令行参数
+    if len(sys.argv) > 1:
+        return {
+            'botToken': sys.argv[1],
+            'apiId': int(os.environ.get('API_ID', '21791619')),
+            'apiHash': os.environ.get('API_HASH', '282e7c380c97f10391003d88c48701fe'),
+            'proxyEnabled': os.environ.get('PROXY_ENABLED', 'false').lower() == 'true',
+            'proxyHost': '127.0.0.1',
+            'proxyPort': 7890
+        }
     
-    # 回退到环境变量
+    # 回退到硬编码（用于测试）
     return {
-        'botToken': os.environ.get('BOT_TOKEN', ''),
-        'apiId': int(os.environ.get('API_ID', '0')),
-        'apiHash': os.environ.get('API_HASH', ''),
-        'proxyEnabled': False,
+        'botToken': '8380175815:AAG-ynueRiEkNWDFULpc8VNhRD5b3B3f0Cc',
+        'apiId': 21791619,
+        'apiHash': '282e7c380c97f10391003d88c48701fe',
+        'proxyEnabled': True,
         'proxyHost': '127.0.0.1',
         'proxyPort': 7890
     }
@@ -460,7 +467,8 @@ class QuntuiBot:
 
 
 async def main():
-    bot = QuntuiBot()
+    api_url = os.environ.get('API_BASE', 'http://localhost:8083')
+    bot = QuntuiBot(api_url)
     await bot.start()
 
 

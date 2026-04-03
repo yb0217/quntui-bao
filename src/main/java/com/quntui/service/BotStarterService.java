@@ -26,11 +26,15 @@ public class BotStarterService implements ApplicationRunner {
     private String pythonScript;
 
     @Value("${telegram.bot.token:}")
-    private String botTokenFromConfig;
+    private String botTokenFromConfig = "";
 
     @Override
     public void run(ApplicationArguments args) {
         log.info("正在启动 Python 机器人...");
+        log.info("Python工作目录: {}", pythonWorkDir);
+        log.info("Python脚本: {}", pythonScript);
+        log.info("BotTokenFromConfig是否为null: {}", botTokenFromConfig == null);
+        log.info("BotTokenFromConfig长度: {}", botTokenFromConfig != null ? botTokenFromConfig.length() : 0);
 
         // 检查 Python 脚本目录
         File scriptDir = new File(pythonWorkDir);
@@ -60,36 +64,29 @@ public class BotStarterService implements ApplicationRunner {
 
         // 启动 Python 机器人
         try {
-            ProcessBuilder pb = new ProcessBuilder("python3", pythonScript);
+            log.info("使用 Bot Token: {}...", botToken.substring(0, Math.min(10, botToken.length())));
+            
+            String[] cmd = new String[]{"python3", "-u", "bot.py", botToken};
+            ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.directory(scriptDir);
-            pb.environment().put("BOT_TOKEN", botToken);
+            pb.environment().put("API_ID", "21791619");
+            pb.environment().put("API_HASH", "282e7c380c97f10391003d88c48701fe");
             pb.environment().put("API_BASE", "http://localhost:8083");
-            pb.redirectErrorStream(true);
+            pb.environment().put("PROXY_ENABLED", "true");
+            
+            pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(scriptDir, "bot.log")));
+            pb.redirectError(ProcessBuilder.Redirect.appendTo(new File(scriptDir, "bot.log")));
 
             Process process = pb.start();
 
-            // 异步读取输出
-            new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        log.info("[Python] {}", line);
-                    }
-                } catch (Exception e) {
-                    log.error("读取 Python 输出失败: {}", e.getMessage());
-                }
-            }).start();
-
             log.info("Python 机器人进程已启动，PID: {}", process.pid());
 
-            // 添加关闭钩子
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                log.info("正在关闭 Python 机器人...");
-                process.destroy();
-            }));
-
         } catch (Exception e) {
-            log.error("Python 机器人启动失败: {}", e.getMessage(), e);
+            String msg = e.getMessage();
+            if (msg == null || msg.contains("indexOf") || msg.contains("Cannot invoke")) {
+                msg = "Python 机器人启动失败";
+            }
+            log.error("{}", msg, e);
         }
     }
 }

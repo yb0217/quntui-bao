@@ -10,11 +10,19 @@ spring:
       connectionInitSql: SET NAMES utf8mb4
       connection-sql: SET CHARACTER SET utf8mb4
 
+# Python 机器人配置
+python:
+  bot:
+    script: bot.py
+    workdir: /tmp/python
+
 # Telegram 开发环境配置
 telegram:
-  bot-token: 8380175815:AAG-ynueRiEkNWDFULpc8VNhRD5b3B3f0Cc
-  api-id: 21791619
-  api-hash: 282e7c380c97f10391003d88c48701fe
+  bot:
+    token: 8380175815:AAG-ynueRiEkNWDFULpc8VNhRD5b3B3f0Cc
+  api:
+    id: 21791619
+    hash: 282e7c380c97f10391003d88c48701fe
   proxy:
     enabled: true
     host: 127.0.0.1
