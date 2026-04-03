@@ -136,11 +136,8 @@ class QuntuiBot:
                 final_welcome_msg = f"{user_mention} {welcome_msg}"
                 
                 # 发送欢迎消息（使用 HTML 解析模式）
-                sent_msg = await self.client.send_message(chat_id, final_welcome_msg, parse_mode='html')
-                print(f"👋 欢迎消息已发送到群 {chat_id}, msg_id={sent_msg.id}")
-                
-                # 1分钟后自动删除欢迎消息
-                asyncio.create_task(self.delete_message_after(chat_id, sent_msg.id, 60, 'welcome'))
+                await self.client.send_message(chat_id, final_welcome_msg, parse_mode='html')
+                print(f"👋 欢迎消息已发送到群 {chat_id}")
                 
                 # TODO: 暂时屏蔽发送日志
                 # self.api.record_send_log(
@@ -153,16 +150,6 @@ class QuntuiBot:
                 
         except Exception as e:
             print(f"❌ 处理新成员加入失败: {e}")
-    
-    async def delete_message_after(self, chat_id, message_id, delay_seconds, msg_type='message'):
-        """延迟删除消息"""
-        await asyncio.sleep(delay_seconds)
-        try:
-            await self.client.delete_messages(chat_id, [message_id])
-            print(f"🗑️ {msg_type}消息已删除: chat={chat_id}, msg_id={message_id}")
-        except Exception as e:
-            # 消息可能已被删除或不存在，忽略错误
-            print(f"⚠️ 删除{msg_type}消息失败(可能已被删): chat={chat_id}, msg_id={message_id}, error={e}")
     
     async def memory_cleanup(self):
         """定期清理内存，防止内存泄漏"""
@@ -321,26 +308,12 @@ class QuntuiBot:
                     
                     # 发送广告
                     try:
-                        # 先删除旧广告（如果存在）
-                        last_ad_msg_id = self.api.get_last_message_id(group_id, 'ad')
-                        if last_ad_msg_id:
-                            try:
-                                await self.client.delete_messages(group_id, [last_ad_msg_id])
-                                print(f"🗑️ 已删除群 {group_id} 的旧广告 msg_id={last_ad_msg_id}")
-                                sent_this_minute += 1  # 删除也计入限流
-                            except Exception as e:
-                                print(f"⚠️ 删除旧广告失败(可能已被删): {e}")
-                        
                         title = ad.get('title', '')
                         content = ad.get('content', '')
                         message = f"*{title}*\n\n{content}" if title else content
                         
                         # 确保 buttons 为 None 而不是空列表
-                        sent_msg = await self.client.send_message(group_id, message, buttons=buttons if buttons else None)
-                        
-                        # 保存新广告消息ID
-                        self.api.save_message_id(group_id, 'ad', sent_msg.id)
-                        print(f"💾 已保存广告消息ID: group={group_id}, msg_id={sent_msg.id}")
+                        await self.client.send_message(group_id, message, buttons=buttons if buttons else None)
                         
                         # TODO: 暂时屏蔽发送日志
                         # self.api.record_send_log(

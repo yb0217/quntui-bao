@@ -417,6 +417,38 @@ class QuntuiAPIClient:
         """获取每分钟限流"""
         return int(self.get_system_config('ad_max_per_minute') or 20)
 
+    # ========== 消息ID管理（用于删除旧消息） ==========
+    
+    def save_message_id(self, group_id, message_type, message_id):
+        """保存消息ID到Java后端"""
+        try:
+            url = f"{self.base_url}/api/group-messages"
+            data = {
+                'groupId': str(group_id),
+                'messageType': message_type,
+                'messageId': message_id
+            }
+            resp = self.session.post(url, json=data, timeout=5)
+            return resp.status_code == 200
+        except Exception as e:
+            print(f"保存消息ID失败: {e}")
+            return False
+    
+    def get_last_message_id(self, group_id, message_type):
+        """获取群组最后一条消息的ID"""
+        try:
+            url = f"{self.base_url}/api/group-messages"
+            params = {'groupId': group_id, 'messageType': message_type}
+            resp = self.session.get(url, params=params, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                msg_data = data.get('data')
+                if msg_data:
+                    return msg_data.get('messageId')
+        except Exception as e:
+            print(f"获取消息ID失败: {e}")
+        return None
+
 
 # 测试用
 if __name__ == '__main__':
