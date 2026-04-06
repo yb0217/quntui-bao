@@ -366,7 +366,7 @@ class QuntuiBot:
                         
                         title = ad.get('title', '')
                         content = ad.get('content', '')
-                        message = f"*{title}*\n\n{content}" if title else content
+                        message = f"{title}\n\n{content}" if title else content
                         
                         # 确保 buttons 为 None 而不是空列表
                         sent_msg = await self.client.send_message(entity, message, buttons=buttons if buttons else None)
